@@ -215,6 +215,11 @@ input[type=number]{-moz-appearance:textfield}
 <div class="panel active" id="panel-import">
   <div class="card">
     <div class="card-title">📥 データ取込</div>
+    <!-- 取込先レースタブ -->
+    <div class="race-tabs-wrap" style="margin-bottom:12px">
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">取込先レース</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="import-race-tabs"></div>
+    </div>
     <div class="hint">
       <span class="sn">①</span> <b>Claudeのチャット</b>にURLを貼って送信<br>
       <span class="sn">②</span> ClaudeがJSONを返したら<b>下の枠に貼り付け</b><br>
@@ -678,6 +683,16 @@ function updateRaceTabs(){
     const hasData=r.horses.length>0||r.name;
     tab.classList.toggle('has-data',hasData);
     tab.textContent=r.name?r.name.substring(0,6):`R${i+1}`;
+  }
+  // 取込パネル内のレースタブも更新
+  const importTabs=document.getElementById('import-race-tabs');
+  if(importTabs){
+    importTabs.innerHTML=Array.from({length:NUM_RACES},(_,i)=>{
+      const r=races[i];
+      const label=r.name?r.name.substring(0,6):`R${i+1}`;
+      const active=i===currentRace?'active':'';
+      return `<div class="race-tab ${active}" onclick="switchRace(${i})" style="border-radius:20px;padding:5px 14px;font-size:11px;cursor:pointer;transition:all .2s">${label}</div>`;
+    }).join('');
   }
 }
 
