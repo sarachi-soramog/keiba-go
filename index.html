@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>V7 展開予想AI Prototype</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js/dist/html2pdf.bundle.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero">
+  <h1>V7 展開予想AI</h1>
+  <p>JRA / 地方競馬 展開シミュレーター Prototype</p>
+</header>
+
+<div class="toolbar">
+  <input type="file" id="excelFile" accept=".xlsx,.xls">
+  <button id="loadBtn">Excel読込</button>
+  <button id="pdfBtn">PDF保存</button>
+</div>
+
+<div id="report">
+
+  <section class="card top-grid">
+    <div>
+      <h2>レース情報</h2>
+      <div id="raceInfo">
+        東京芝2400m / オークス想定
+      </div>
+    </div>
+
+    <div>
+      <h2>ペース予測</h2>
+      <div class="pace slow">スローペース → ロングスパート</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>想定隊列</h2>
+
+    <div class="lane-grid">
+      <div class="lane">
+        <h3>逃げ</h3>
+        <div class="horse">2 レイクラシック</div>
+      </div>
+
+      <div class="lane">
+        <h3>先行</h3>
+        <div class="horse">4 ロングトールサリー</div>
+        <div class="horse">18 ラフターラインズ</div>
+      </div>
+
+      <div class="lane">
+        <h3>中団</h3>
+        <div class="horse">1 ミツカネペネラ</div>
+        <div class="horse">10 スターアニス</div>
+      </div>
+
+      <div class="lane">
+        <h3>後方</h3>
+        <div class="horse">3 アランカール</div>
+        <div class="horse">12 ドリームコア</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>展開評価ランキング</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>評価</th>
+          <th>馬番</th>
+          <th>馬名</th>
+          <th>SBO</th>
+          <th>RC</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <tr>
+          <td>S</td>
+          <td>3</td>
+          <td>アランカール</td>
+          <td>275</td>
+          <td>6.7</td>
+        </tr>
+
+        <tr>
+          <td>A</td>
+          <td>12</td>
+          <td>ドリームコア</td>
+          <td>265</td>
+          <td>5.9</td>
+        </tr>
+
+        <tr>
+          <td>B</td>
+          <td>18</td>
+          <td>ラフターラインズ</td>
+          <td>250</td>
+          <td>5.1</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>AIコメント</h2>
+
+    <ul>
+      <li>東京2400mらしくスロー寄りの隊列想定。</li>
+      <li>直線の瞬発力勝負になりやすく、上がり性能が重要。</li>
+      <li>差し・追込タイプに展開利あり。</li>
+      <li>ロングスパート適性馬を重視。</li>
+    </ul>
+  </section>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
