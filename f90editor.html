@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F90 Player Editor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Kosugi+Maru&display=swap');
+:root {
+  --green:#00ff41;--darkgreen:#003b00;--midgreen:#007700;--bg:#0a0a0a;
+  --panel:#0d1f0d;--border:#1a4a1a;--accent:#39ff14;--warn:#ffcc00;
+  --danger:#ff4444;--text:#c8ffc8;--dim:#557755;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;padding-bottom:50px;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.012) 2px,rgba(0,255,65,.012) 4px);
+  pointer-events:none;z-index:9999;}
+header{background:linear-gradient(135deg,#001a00,#003300,#001a00);border-bottom:2px solid var(--green);
+  padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;
+  box-shadow:0 0 20px rgba(0,255,65,.3);flex-wrap:wrap;}
+.logo{font-size:20px;color:var(--accent);text-shadow:0 0 10px var(--accent);letter-spacing:2px;white-space:nowrap;}
+.logo span{color:var(--warn);}
+.hdr-btns{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap;}
+.btn{padding:7px 13px;border:1px solid var(--green);background:transparent;color:var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:13px;cursor:pointer;border-radius:3px;transition:all .2s;white-space:nowrap;}
+.btn:hover{background:var(--darkgreen);box-shadow:0 0 8px var(--green);}
+.btn.primary{border-color:var(--accent);color:var(--accent);font-weight:bold;}
+.btn.warn{border-color:var(--warn);color:var(--warn);}
+.btn.danger{border-color:var(--danger);color:var(--danger);}
+.btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* ドロップゾーン */
+#dropzone{border:2px dashed var(--midgreen);border-radius:8px;padding:48px 20px;text-align:center;
+  margin:24px;cursor:pointer;transition:all .3s;background:var(--panel);}
+#dropzone:hover,.drag{border-color:var(--accent)!important;background:var(--darkgreen)!important;}
+.drop-icon{font-size:52px;margin-bottom:14px;}
+.drop-title{font-size:20px;color:var(--green);margin-bottom:8px;}
+.drop-text{color:var(--dim);font-size:13px;line-height:1.8;}
+
+/* メイン */
+#main{display:none;padding:12px;}
+.info-bar{background:var(--panel);border:1px solid var(--border);border-radius:6px;
+  padding:9px 14px;margin-bottom:12px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:13px;}
+.lbl{color:var(--dim);}.val{color:var(--accent);}
+.changes-val{color:var(--warn);}
+
+/* ワークフローボタン */
+.workflow{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.workflow-step{display:flex;align-items:center;gap:8px;}
+.step-num{background:var(--darkgreen);border:1px solid var(--midgreen);color:var(--green);
+  width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.step-arrow{color:var(--dim);font-size:18px;}
+
+/* テーブルパネル */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.panel-hdr{padding:9px 14px;background:var(--darkgreen);border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.panel-title{font-size:15px;color:var(--accent);}
+.team-tabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px;border-bottom:1px solid var(--border);}
+.team-tab{padding:5px 10px;border:1px solid var(--border);background:transparent;color:var(--dim);
+  font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;border-radius:3px;transition:all .15s;}
+.team-tab:hover{background:var(--darkgreen);color:var(--text);}
+.team-tab.active{background:#002200;color:var(--accent);border-color:var(--accent);}
+
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{padding:6px 7px;background:#001500;color:var(--dim);text-align:left;
+  border-bottom:1px solid var(--border);font-size:11px;letter-spacing:.8px;white-space:nowrap;}
+td{padding:4px 5px;border-bottom:1px solid #112011;vertical-align:middle;}
+tr:hover td{background:rgba(0,255,65,.04);}
+.sec-row td{background:#001200;color:var(--dim);font-size:10px;letter-spacing:1.5px;padding:3px 8px;}
+
+.pnum{color:var(--dim);font-size:11px;text-align:center;width:26px;}
+.name-in{background:transparent;border:1px solid transparent;color:var(--green);
+  font-family:'Kosugi Maru',sans-serif;font-size:13px;padding:2px 5px;width:108px;border-radius:3px;transition:all .2s;}
+.name-in:focus{outline:none;border-color:var(--accent);background:var(--darkgreen);}
+.hexbadge{font-size:9px;color:#334433;font-family:'Share Tech Mono',monospace;display:block;margin-top:1px;}
+.pos-sel{background:var(--bg);border:1px solid var(--border);color:var(--warn);
+  font-family:'Share Tech Mono',monospace;font-size:11px;padding:2px 3px;border-radius:3px;width:58px;}
+.param-in{background:transparent;border:1px solid transparent;color:var(--text);
+  font-family:'Share Tech Mono',monospace;font-size:12px;padding:2px 3px;width:44px;text-align:center;border-radius:3px;transition:all .2s;}
+.param-in:focus{outline:none;border-color:var(--midgreen);background:var(--darkgreen);}
+.changed{color:var(--warn)!important;border-color:var(--warn)!important;}
+
+#statusbar{position:fixed;bottom:0;left:0;right:0;background:var(--darkgreen);
+  border-top:1px solid var(--border);padding:5px 14px;font-size:12px;color:var(--dim);z-index:100;display:flex;gap:16px;}
+#statusbar .st{color:var(--green);}
+#toast{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);background:var(--darkgreen);
+  border:1px solid var(--accent);color:var(--accent);padding:9px 20px;border-radius:20px;
+  font-size:13px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 0 15px rgba(0,255,65,.4);}
+#toast.show{opacity:1;}
+
+.help{background:#001a00;border:1px solid var(--border);border-radius:6px;padding:12px 16px;
+  margin-bottom:14px;font-size:12px;color:var(--dim);line-height:1.9;}
+.help b{color:var(--green);}
+.help code{background:#002200;padding:1px 5px;border-radius:3px;color:var(--warn);font-size:11px;}
+
+@media(max-width:600px){.workflow{flex-direction:column;}.step-arrow{transform:rotate(90deg);}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">F90 <span>PLAYER</span> EDITOR</div>
+  <div class="hdr-btns">
+    <button class="btn" onclick="document.getElementById('romInput').click()">📂 ROM読込</button>
+    <input type="file" id="romInput" accept=".nes" style="display:none" onchange="loadROM(this)">
+    <button class="btn primary" id="btnSaveROM" onclick="saveROM()" disabled>💾 ROM保存</button>
+    <button class="btn warn" id="btnExportCSV" onclick="exportCSV()" disabled>📊 CSV出力</button>
+    <button class="btn warn" id="btnImportCSV" onclick="document.getElementById('csvInput').click()" disabled>📥 CSV読込</button>
+    <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="importCSV(this)">
+    <button class="btn danger" id="btnReset" onclick="resetAll()" disabled>↩ リセット</button>
+  </div>
+</header>
+
+<div id="dropzone"
+  onclick="document.getElementById('romInput').click()"
+  ondragover="event.preventDefault();this.classList.add('drag')"
+  ondragleave="this.classList.remove('drag')"
+  ondrop="handleDrop(event)">
+  <div class="drop-icon">🎮</div>
+  <div class="drop-title">NESファイルをここにドロップ</div>
+  <div class="drop-text">またはタップしてファイルを選択<br>ファミスタ90ハックロム (.nes) 対応</div>
+</div>
+
+<div id="main">
+  <div class="info-bar">
+    <div><span class="lbl">ファイル: </span><span class="val" id="iFilename">-</span></div>
+    <div><span class="lbl">サイズ: </span><span class="val" id="iSize">-</span></div>
+    <div><span class="lbl">チーム: </span><span class="val">20チーム × 23選手</span></div>
+    <div><span class="lbl">変更: </span><span class="val changes-val" id="iChanges">0バイト</span></div>
+  </div>
+
+  <div class="help">
+    <b>使い方</b>：
+    ① ROM読込 →
+    ② <b>CSV出力</b>でExcel/スプレッドシートへ →
+    ③ Excel上で選手名・能力値を編集 →
+    ④ <b>CSV読込</b>で反映 →
+    ⑤ <b>ROM保存</b><br>
+    <b>選手名</b>はひらがなで入力。濁音は「が」「ざ」等そのまま入力可。最大5文字。
+    <b>守備位置コード</b>: <code>1=P</code> <code>2=RF</code> <code>3=3B</code> <code>4=CF</code> <code>5=LF</code> <code>6=SS</code> <code>7=C</code> <code>8=2B</code> <code>9=1B</code> <code>10=DH</code> <code>11=PH</code><br>
+    ※ 選手名の文字コードは<b>暫定</b>です。実機確認後に不一致があれば報告してください。
+  </div>
+
+  <div class="panel">
+    <div class="panel-hdr">
+      <div class="panel-title" id="panelTitle">Team 00</div>
+      <div style="font-size:11px;color:var(--dim)">野手P00-P13 / 投手P14-P22</div>
+    </div>
+    <div class="team-tabs" id="teamTabs"></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>選手名 (ひらがな)</th>
+            <th>守備位置</th>
+            <th title="byte6">B6</th>
+            <th title="byte7">B7</th>
+            <th title="byte8">B8</th>
+            <th title="byte9">B9</th>
+            <th title="byte10">B10</th>
+            <th title="byte11">B11</th>
+            <th title="byte13 ※守備位置はB12=POS列">B13</th>
+            <th title="byte14">B14</th>
+            <th title="byte15">B15</th>
+            <th title="byte16">B16</th>
+          </tr>
+        </thead>
+        <tbody id="playerBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="statusbar">
+  <span>F90 Player Editor v1.1</span>
+  <span class="st" id="stMsg">ROMを読み込んでください</span>
+</div>
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// 文字コードテーブル
+// 確定: ま=0x28, き=0x2E, は=0x4B, ら=0x46
+// 他は暫定50音推定。実機確認後に修正してください。
+// ============================================================
+const CODE2CH = {};
+const CH2CODE = {};
+
+const BASE_TABLE = [
+  [0x24,'あ'],[0x25,'い'],[0x26,'う'],[0x27,'え'],[0x28,'ま'],// 0x28=ま確定
+  [0x29,'か'],[0x2A,'き'],[0x2B,'く'],[0x2C,'け'],[0x2D,'こ'],
+  [0x2E,'き'],[0x2F,'し'],[0x30,'す'],[0x31,'せ'],[0x32,'そ'],// 0x2E=き確定
+  [0x33,'た'],[0x34,'ち'],[0x35,'つ'],[0x36,'て'],[0x37,'と'],
+  [0x38,'な'],[0x39,'に'],[0x3A,'ぬ'],[0x3B,'ね'],[0x3C,'の'],
+  [0x3D,'は'],[0x3E,'ひ'],[0x3F,'ふ'],[0x40,'へ'],[0x41,'ほ'],
+  [0x42,'ま'],[0x43,'み'],[0x44,'む'],[0x45,'め'],[0x46,'ら'],// 0x46=ら確定
+  [0x47,'や'],[0x48,'ゆ'],[0x49,'よ'],[0x4A,'ら'],[0x4B,'は'],// 0x4B=は確定
+  [0x4C,'る'],[0x4D,'れ'],[0x4E,'ろ'],[0x4F,'わ'],[0x50,'を'],
+  [0x51,'ん'],
+  [0x52,'ぁ'],[0x53,'ぃ'],[0x54,'ぅ'],[0x55,'ぇ'],[0x56,'ぉ'],
+  [0x57,'っ'],[0x58,'ゃ'],[0x59,'ゅ'],[0x5A,'ょ'],[0x60,'ー'],
+  // 拡張文字コード（推定）
+  [0x90,'い'],[0x91,'う'],[0x92,'え'],[0x93,'お'],
+  [0x94,'か'],[0x95,'が'],[0x96,'ぎ'],[0x97,'ぐ'],[0x98,'げ'],[0x99,'ご'],
+  [0x9A,'ざ'],[0x9B,'じ'],[0x9C,'ず'],[0x9D,'ぜ'],[0x9E,'ぞ'],
+  [0x9F,'だ'],[0xA0,'ぢ'],[0xA1,'づ'],[0xA2,'で'],[0xA3,'ど'],
+  [0xA4,'ば'],[0xA5,'び'],[0xA6,'ぶ'],[0xA7,'べ'],[0xA8,'ぼ'],
+  [0xA9,'ぱ'],[0xAA,'ぴ'],[0xAB,'ぷ'],[0xAC,'ぺ'],[0xAD,'ぽ'],
+];
+
+// 濁点バイト
+const DAKU_BYTES  = new Set([0x8E,0x97]);
+const HANDAKU_BYTES = new Set([0x8D,0x8F]);
+
+BASE_TABLE.forEach(([c,ch]) => {
+  CODE2CH[c] = ch;
+  if (!CH2CODE[ch]) CH2CODE[ch] = c;
+});
+
+const DAKU = {か:'が',き:'ぎ',く:'ぐ',け:'げ',こ:'ご',さ:'ざ',し:'じ',す:'ず',せ:'ぜ',そ:'ぞ',
+  た:'だ',ち:'ぢ',つ:'づ',て:'で',と:'ど',は:'ば',ひ:'び',ふ:'ぶ',へ:'べ',ほ:'ぼ'};
+const HANDAKU = {は:'ぱ',ひ:'ぴ',ふ:'ぷ',へ:'ぺ',ほ:'ぽ'};
+const DAKU_INV = Object.fromEntries(Object.entries(DAKU).map(([k,v])=>[v,k]));
+const HANDAKU_INV = Object.fromEntries(Object.entries(HANDAKU).map(([k,v])=>[v,k]));
+
+function decodeBytes(bytes) {
+  const r = [];
+  for (const b of bytes) {
+    if (b === 0x24) break;
+    if (DAKU_BYTES.has(b)) {
+      if (r.length) r[r.length-1] = DAKU[r[r.length-1]] || r[r.length-1]+'゛';
+    } else if (HANDAKU_BYTES.has(b)) {
+      if (r.length) r[r.length-1] = HANDAKU[r[r.length-1]] || r[r.length-1]+'゜';
+    } else if (CODE2CH[b]) {
+      r.push(CODE2CH[b]);
+    } else {
+      r.push(`[${b.toString(16).padStart(2,'0').toUpperCase()}]`);
+    }
+  }
+  return r.join('');
+}
+
+function encodeString(str) {
+  // ひらがな → 5バイト配列（末尾0x24パディング）
+  const bytes = [0x24,0x24,0x24,0x24,0x24];
+  let pos = 0;
+  const chars = [...str];
+  for (let i = 0; i < chars.length && pos < 5; i++) {
+    const ch = chars[i];
+    // 濁音分解
+    if (DAKU_INV[ch] && CH2CODE[DAKU_INV[ch]] !== undefined && pos < 4) {
+      bytes[pos++] = CH2CODE[DAKU_INV[ch]];
+      bytes[pos++] = 0x8E; // 濁点
+    } else if (HANDAKU_INV[ch] && CH2CODE[HANDAKU_INV[ch]] !== undefined && pos < 4) {
+      bytes[pos++] = CH2CODE[HANDAKU_INV[ch]];
+      bytes[pos++] = 0x8D; // 半濁点
+    } else if (CH2CODE[ch] !== undefined) {
+      bytes[pos++] = CH2CODE[ch];
+    } else {
+      bytes[pos++] = 0x24; // 未知文字→パディング
+    }
+  }
+  return bytes;
+}
+
+// ============================================================
+// 守備位置
+// ============================================================
+const POS_MAP = {1:'P',2:'RF',3:'3B',4:'CF',5:'LF',6:'SS',7:'C',8:'2B',9:'1B',10:'DH',11:'PH',12:'PR'};
+const POS_OPTS = [[1,'P'],[2,'RF'],[3,'3B'],[4,'CF'],[5,'LF'],[6,'SS'],[7,'C'],[8,'2B'],[9,'1B'],[10,'DH'],[11,'PH'],[12,'PR']];
+
+// ============================================================
+// ROM管理
+// ============================================================
+const DATA_START = 0x00E350;
+const TEAM_COUNT = 20;
+const PLAYERS_PER_TEAM = 23;
+const REC = 16;
+
+let romData = null, origData = null, teams = [], filename = '', currentTeam = 0;
+
+function parseROM(arr) {
+  const result = [];
+  for (let t = 0; t < TEAM_COUNT; t++) {
+    const team = [];
+    for (let p = 0; p < PLAYERS_PER_TEAM; p++) {
+      const addr = DATA_START + (t * PLAYERS_PER_TEAM + p) * REC;
+      team.push({
+        addr,
+        nameBytes: Array.from(arr.slice(addr+1, addr+6)),
+        params: Array.from(arr.slice(addr+6, addr+16)),
+      });
+    }
+    result.push(team);
+  }
+  return result;
+}
+
+function loadROM(input) {
+  const file = input.files[0];
+  if (!file) return;
+  filename = file.name;
+  const fr = new FileReader();
+  fr.onload = e => {
+    romData = new Uint8Array(e.target.result);
+    origData = new Uint8Array(romData);
+    teams = parseROM(romData);
+    document.getElementById('dropzone').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+    ['btnSaveROM','btnExportCSV','btnImportCSV','btnReset'].forEach(id => document.getElementById(id).disabled = false);
+    document.getElementById('iFilename').textContent = filename;
+    document.getElementById('iSize').textContent = (romData.length/1024).toFixed(0)+' KB';
+    buildTabs();
+    selectTeam(0);
+    toast('✓ ROM読み込み完了');
+    setStatus('ROM読み込み完了: '+filename);
+  };
+  fr.readAsArrayBuffer(file);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.nes')) {
+    const dt = new DataTransfer(); dt.items.add(f);
+    document.getElementById('romInput').files = dt.files;
+    loadROM(document.getElementById('romInput'));
+  }
+}
+
+// ============================================================
+// CSV出力
+// ============================================================
+function exportCSV() {
+  const header = 'チーム,選手番号,種別,選手名,名前HEX,守備位置コード,守備位置,B6,B7,B8,B9,B10,B11,B13,B14,B15,B16';
+  const rows = [header];
+  teams.forEach((team, ti) => {
+    team.forEach((pl, pi) => {
+      const name = decodeBytes(pl.nameBytes);
+      const hex = pl.nameBytes.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+      const posCode = pl.params[6];
+      const pos = POS_MAP[posCode] || posCode;
+      const type = pi < 14 ? '野手' : '投手';
+      const params = pl.params.filter((_,i) => i !== 6); // B12(守備位置)除く
+      rows.push([`Team${String(ti).padStart(2,'0')}`, pi, type, `"${name}"`, hex, posCode, pos, ...params].join(','));
+    });
+  });
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + rows.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  dlBlob(blob, filename.replace('.nes','_players.csv'));
+  toast('✓ CSV出力完了');
+}
+
+// ============================================================
+// CSV読込
+// ============================================================
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = e => {
+    try {
+      const text = e.target.result.replace(/^\uFEFF/,'');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      const headers = lines[0].split(',');
+      let ok = 0, err = 0;
+
+      lines.slice(1).forEach(line => {
+        const cols = parseCSVLine(line);
+        if (cols.length < 8) return;
+        const teamStr = cols[0].trim(); // "Team00"
+        const pIdx = parseInt(cols[1]);
+        // cols[2]=種別, cols[3]=選手名, cols[4]=HEX(無視), cols[5]=守備位置コード, cols[6]=守備位置名(無視)
+        const nameStr = cols[3].replace(/^"|"$/g,'').trim();
+        const posCode = parseInt(cols[5]);
+        // cols[7]〜 = B6,B7,B8,B9,B10,B11,B13,B14,B15,B16
+        const paramVals = cols.slice(7).map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+
+        const tIdx = parseInt(teamStr.replace('Team',''));
+        if (isNaN(tIdx) || tIdx < 0 || tIdx >= TEAM_COUNT) { err++; return; }
+        if (isNaN(pIdx) || pIdx < 0 || pIdx >= PLAYERS_PER_TEAM) { err++; return; }
+
+        const pl = teams[tIdx][pIdx];
+        const addr = pl.addr;
+
+        // 名前書き込み
+        const newBytes = encodeString(nameStr);
+        for (let i = 0; i < 5; i++) {
+          romData[addr+1+i] = newBytes[i];
+          pl.nameBytes[i] = newBytes[i];
+        }
+
+        // 守備位置(byte12=params[6])
+        if (!isNaN(posCode)) {
+          romData[addr+6+6] = posCode;
+          pl.params[6] = posCode;
+        }
+
+        // 残りパラメータ（B6,B7,B8,B9,B10,B11 → params[0-5], B13→params[7], B14→params[8], B15→params[9], B16→?）
+        const paramIdxMap = [0,1,2,3,4,5,7,8,9]; // B12スキップ
+        paramVals.forEach((v,i) => {
+          if (i < paramIdxMap.length && !isNaN(v)) {
+            const pi = paramIdxMap[i];
+            romData[addr+6+pi] = Math.max(0,Math.min(255,v));
+            pl.params[pi] = Math.max(0,Math.min(255,v));
+          }
+        });
+        ok++;
+      });
+
+      updateChangeCount();
+      if (currentTeam >= 0) buildTable(currentTeam);
+      toast(`✓ CSV読込完了: ${ok}選手更新${err?` (エラー${err}件)`:''}`);
+      setStatus(`CSV読込: ${ok}選手更新`);
+    } catch(ex) {
+      toast('❌ CSV読込エラー: ' + ex.message);
+    }
+    input.value = '';
+  };
+  fr.readAsText(file, 'UTF-8');
+}
+
+function parseCSVLine(line) {
+  // ダブルクォート内のカンマを考慮したCSVパーサ
+  const cols = [];
+  let cur = '', inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cols.push(cur);
+  return cols;
+}
+
+// ============================================================
+// ROM保存
+// ============================================================
+function saveROM() {
+  dlBlob(new Blob([romData], {type:'application/octet-stream'}), filename.replace('.nes','_edited.nes'));
+  toast('✓ ROM保存完了');
+}
+
+function resetAll() {
+  if (!confirm('全変更をリセットしますか？')) return;
+  romData = new Uint8Array(origData);
+  teams = parseROM(romData);
+  updateChangeCount();
+  buildTable(currentTeam);
+  toast('↩ リセット完了');
+}
+
+// ============================================================
+// UI
+// ============================================================
+function buildTabs() {
+  const c = document.getElementById('teamTabs');
+  c.innerHTML = '';
+  for (let i = 0; i < TEAM_COUNT; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'team-tab';
+    btn.id = `tab-${i}`;
+    btn.textContent = `T${String(i).padStart(2,'0')}`;
+    btn.onclick = () => selectTeam(i);
+    c.appendChild(btn);
+  }
+}
+
+function selectTeam(idx) {
+  document.querySelectorAll('.team-tab').forEach(b => b.classList.remove('active'));
+  const tab = document.getElementById(`tab-${idx}`);
+  if (tab) tab.classList.add('active');
+  currentTeam = idx;
+  document.getElementById('panelTitle').textContent = `Team ${String(idx).padStart(2,'0')}`;
+  buildTable(idx);
+}
+
+function buildTable(ti) {
+  const tbody = document.getElementById('playerBody');
+  tbody.innerHTML = '';
+  teams[ti].forEach((pl, pi) => {
+    if (pi === 0) addSecRow(tbody, '▼ 野手  P00〜P13');
+    if (pi === 14) addSecRow(tbody, '▼ 投手  P14〜P22');
+    const tr = document.createElement('tr');
+    const nameStr = decodeBytes(pl.nameBytes);
+    const hexStr = pl.nameBytes.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+    const posCode = pl.params[6];
+    tr.innerHTML = `
+      <td class="pnum">${String(pi).padStart(2,'0')}</td>
+      <td>
+        <input class="name-in" type="text" value="${nameStr}"
+          data-ti="${ti}" data-pi="${pi}"
+          oninput="onName(this)" title="ひらがな5文字以内">
+        <span class="hexbadge" id="hx-${ti}-${pi}">${hexStr}</span>
+      </td>
+      <td>
+        <select class="pos-sel" data-ti="${ti}" data-pi="${pi}" data-px="6" onchange="onParam(this)">
+          ${POS_OPTS.map(([v,l])=>`<option value="${v}"${posCode==v?' selected':''}>${l}</option>`).join('')}
+        </select>
+      </td>
+      ${pl.params.map((v,px) => px===6 ? '' :
+        `<td><input class="param-in" type="number" min="0" max="255" value="${v}"
+          data-ti="${ti}" data-pi="${pi}" data-px="${px}"
+          oninput="onParam(this)"
+          title="byte${px+6}: ${v} (0x${v.toString(16).padStart(2,'0').toUpperCase()})"></td>`
+      ).join('')}`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addSecRow(tbody, label) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td colspan="13" class="sec-row">${label}</td>`;
+  tbody.appendChild(tr);
+}
+
+function onName(el) {
+  const ti = +el.dataset.ti, pi = +el.dataset.pi;
+  const pl = teams[ti][pi];
+  const nb = encodeString(el.value);
+  nb.forEach((b,i) => { romData[pl.addr+1+i]=b; pl.nameBytes[i]=b; });
+  const hx = document.getElementById(`hx-${ti}-${pi}`);
+  if (hx) hx.textContent = nb.map(b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+  el.classList.add('changed');
+  updateChangeCount();
+}
+
+function onParam(el) {
+  const ti = +el.dataset.ti, pi = +el.dataset.pi, px = +el.dataset.px;
+  const v = Math.max(0, Math.min(255, parseInt(el.value)||0));
+  const pl = teams[ti][pi];
+  romData[pl.addr+6+px] = v;
+  pl.params[px] = v;
+  el.classList.add('changed');
+  updateChangeCount();
+}
+
+function updateChangeCount() {
+  let cnt = 0;
+  if (romData && origData) for (let i=0;i<romData.length;i++) if (romData[i]!==origData[i]) cnt++;
+  document.getElementById('iChanges').textContent = cnt + 'バイト';
+  document.getElementById('btnReset').disabled = cnt === 0;
+}
+
+function dlBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function setStatus(msg) { document.getElementById('stMsg').textContent = msg; }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
