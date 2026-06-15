@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JRA予想ツール v7</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:#07090f;--surface:#0d1117;--surface2:#131a24;--surface3:#1a2433;
+  --border:#1e2d42;--border2:#2a3f5a;
+  --text:#f0f6ff;--text-dim:#b0c8e8;--text-mid:#d0e4f8;
+  --accent:#5aafff;--accent2:#a0d4ff;--accent-dim:#3b9eff18;
+  --green:#00f090;--green-dim:#00f09015;--green-dark:#009955;
+  --red:#ff4757;--gold:#ffd060;--orange:#ff7c3b;
+  --race-colors:#5aafff,#00f090,#ffd060,#ff7c3b,#b57bff;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── HEADER ── */
+header{
+  background:linear-gradient(180deg,#0a0f1a,#07090f);
+  border-bottom:1px solid var(--border);
+  padding:0 10px;height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
+  gap:8px;
+}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent);letter-spacing:2px;white-space:nowrap}
+.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:1px;font-family:'JetBrains Mono',monospace}
+.header-right{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.calc-hbtn{background:var(--accent);color:#000;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:12px;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.calc-hbtn:active{transform:scale(.95);opacity:.85}
+.pdf-hbtn{background:var(--surface2);border:1px solid var(--border2);color:var(--text-dim);font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:11px;border-radius:8px;padding:7px 10px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.pdf-hbtn:active{background:var(--surface3)}
+
+/* ── RACE TABS ── */
+.race-tabs{display:flex;background:var(--surface2);border-bottom:2px solid var(--border);position:sticky;top:52px;z-index:190;overflow-x:auto}
+.race-tabs::-webkit-scrollbar{display:none}
+.race-tab{flex:0 0 auto;padding:8px 12px;font-size:11px;font-weight:700;color:var(--text-dim);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;position:relative}
+.race-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface)}
+.race-tab.has-data::after{content:'●';font-size:6px;color:var(--green);position:absolute;top:4px;right:4px}
+
+/* ── FUNCTION TABS ── */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:88px;z-index:180;overflow-x:auto}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:9px 12px;font-size:11px;font-weight:700;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel{display:none}.panel.active{display:block}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:10px;padding:14px}
+.card-title{font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+
+/* ── FORM ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+label{font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;letter-spacing:.5px}
+.sel,.num-in,.txt-in{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:13px;font-weight:700;padding:8px 10px;border-radius:8px;outline:none;text-align:center;transition:border-color .2s;font-family:'JetBrains Mono',monospace;-webkit-appearance:none;cursor:pointer}
+.sel:focus,.num-in:focus,.txt-in:focus{border-color:var(--accent)}
+.txt-in{text-align:left;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:13px}
+.tog-group{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.tog{padding:6px 12px;border-radius:20px;border:1px solid var(--border2);font-size:11px;cursor:pointer;transition:all .2s;background:transparent;color:var(--text-dim);font-family:'Noto Sans JP',sans-serif}
+.tog.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+
+/* ── IMPORT ── */
+.hint{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text-dim);line-height:2;margin-bottom:12px}
+.hint b{color:var(--text);font-weight:700}
+.hint .sn{color:var(--accent);font-weight:900;font-family:'JetBrains Mono',monospace}
+.json-area{width:100%;min-height:100px;background:var(--bg);border:1px dashed var(--border2);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px;padding:10px;border-radius:8px;outline:none;resize:vertical;line-height:1.6;transition:border-color .2s}
+.json-area:focus{border-color:var(--accent);border-style:solid}
+.load-btn{width:100%;background:linear-gradient(135deg,#1a5ca0,var(--accent));color:#000;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:14px;border:none;border-radius:10px;padding:12px;cursor:pointer;transition:all .2s;letter-spacing:1px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.load-btn:active{transform:scale(.97)}
+.load-btn:disabled{background:var(--surface3);color:var(--text-dim);cursor:not-allowed}
+
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent2);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700}
+.chip-g{background:#ffd06018;border-color:var(--gold);color:var(--gold)}
+
+.course-box{background:var(--green-dim);border:1px solid var(--green-dark);border-radius:8px;padding:10px 12px;margin-top:8px}
+.ci-row{display:flex;justify-content:space-between;padding:2px 0;font-size:11px;color:var(--text-mid)}
+.ci-val{color:var(--green);font-weight:700;font-family:'JetBrains Mono',monospace}
+
+/* ── HORSE TABLE ── */
+.horse-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.horse-head,.horse-row{display:grid;grid-template-columns:24px 1fr 48px 40px 40px 40px 52px 36px 38px 38px;gap:4px;align-items:center;min-width:700px}
+.spmax-cell{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:700;color:var(--text-dim);text-align:center;padding:5px 2px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center}
+.spmax-cell.top{color:var(--orange);border-color:var(--orange)}
+.horse-head{padding:4px 2px 8px;border-bottom:1px solid var(--border);margin-bottom:2px}
+.horse-row{padding:6px 2px;border-bottom:1px solid var(--border)}
+.horse-row:last-child{border-bottom:none}
+.hcol{font-size:9px;color:var(--text-dim);text-align:center;line-height:1.3}
+.hnum{width:22px;height:22px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text-dim);flex-shrink:0;transition:all .3s;font-family:'JetBrains Mono',monospace}
+.hnum.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.h-name{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:11px;padding:5px 6px;border-radius:6px;outline:none;font-family:'Noto Sans JP',sans-serif}
+.h-name:focus{border-color:var(--accent)}
+.h-val{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--accent);font-size:11px;padding:5px 3px;border-radius:6px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace}
+.h-val:focus{border-color:var(--accent)}
+.h-val.ai{border-color:#5aafff40;background:var(--accent-dim)}
+.sbo-cell{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:700;color:var(--gold);text-align:center;padding:5px 2px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center}
+.h-step{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:700;padding:5px 2px;border-radius:6px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace;-webkit-appearance:none}
+.h-step.up{color:var(--green);border-color:#00f09050}
+.h-step.down{color:var(--red);border-color:#ff475750}
+
+/* ── RESULT ── */
+.res-row{display:grid;grid-template-columns:24px 1fr 60px 48px 36px;gap:6px;align-items:center;padding:9px 3px;border-bottom:1px solid var(--border)}
+.res-row:last-child{border-bottom:none}
+.rbadge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.r1{background:var(--gold);color:#000}.r2{background:#bdbdbd;color:#000}.r3{background:#a1714a;color:#fff}
+.rn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim)}
+.sbar{height:2px;background:var(--border);border-radius:1px;margin-top:3px;overflow:hidden}
+.sfill{height:100%;border-radius:1px;background:linear-gradient(90deg,#1a5ca0,var(--accent));transition:width .8s cubic-bezier(.4,0,.2,1)}
+.sval{font-size:13px;font-weight:700;text-align:right;font-family:'JetBrains Mono',monospace}
+.sval.top{color:var(--accent)}
+.mark{font-size:16px;font-weight:900;text-align:center}
+.mk0{color:var(--gold)}.mk1{color:var(--red)}.mk2{color:#7bc4ff}.mk3{color:var(--green)}
+.res-sub{font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.rescue-tag{font-size:8px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700;vertical-align:middle}
+
+/* ── STATUS ── */
+.status{border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.8;transition:all .3s;margin-top:8px;display:none}
+.status.show{display:block}
+.s-done{background:#001a0d;color:var(--green);border:1px solid var(--green)}
+.s-error{background:#1a0007;color:var(--red);border:1px solid var(--red)}
+
+/* ── MISC ── */
+.btn-sub{background:transparent;border:1px solid var(--border2);color:var(--text-dim);font-family:'Noto Sans JP',sans-serif;font-size:10px;padding:5px 11px;border-radius:6px;cursor:pointer}
+.btn-sub:active{background:var(--surface2)}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent);color:#000;padding:9px 22px;border-radius:22px;font-weight:700;font-size:13px;z-index:999;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── TENKAI ── */
+.tk-rank{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;font-size:12px;font-weight:900;flex-shrink:0}
+.tk-S{background:#e53935;color:#fff}.tk-A{background:#ff7c3b;color:#fff}.tk-B{background:#ffd060;color:#000}.tk-C{background:#4fc3f7;color:#000}.tk-none{background:var(--surface2);color:var(--text-dim)}
+.tk-pos{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.pos-nige{background:#ff475720;border:1px solid var(--red);color:var(--red)}
+.pos-senkou{background:#ffd06020;border:1px solid var(--gold);color:var(--gold)}
+.pos-chutan{background:#5aafff20;border:1px solid var(--accent);color:var(--accent)}
+.pos-koho{background:#00f09020;border:1px solid var(--green);color:var(--green)}
+.tk-horse-row{display:grid;grid-template-columns:22px 28px 1fr 72px 48px 1fr;gap:6px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--border)}
+.tk-horse-row:last-child{border-bottom:none}
+.tk-section{margin-bottom:14px}
+.tk-section-title{font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;border-bottom:1px solid var(--border);padding-bottom:5px;margin-bottom:8px}
+.tk-formation{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.tk-formation-col{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px}
+.tk-formation-label{font-size:9px;color:var(--text-dim);text-align:center;margin-bottom:6px;font-weight:700;letter-spacing:1px}
+.tk-horse-chip{display:flex;align-items:center;gap:4px;padding:3px 0}
+.tk-num{width:20px;height:20px;border-radius:3px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);flex-shrink:0}
+.tk-ranking-row{display:flex;align-items:center;gap:8px;padding:5px 2px;border-bottom:1px solid var(--border)}
+.tk-ranking-row:last-child{border-bottom:none}
+/* ── WIN5 SUMMARY ── */
+.win5-card{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px;margin:10px}
+.win5-row{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)}
+.win5-row:last-child{border-bottom:none}
+.win5-race{font-size:11px;color:var(--text-dim);width:80px;flex-shrink:0}
+.win5-pick{font-size:14px;font-weight:700;color:var(--accent)}
+.win5-mark{font-size:16px;font-weight:900;width:24px;text-align:center;flex-shrink:0}
+
+/* ── PDF PRINT STYLES ── */
+@media print {
+  * { -webkit-print-color-adjust: exact; color-adjust: exact; }
+  body { background: white !important; color: black !important; }
+  header, .race-tabs, .tabs, .toast, .load-btn, .btn-sub,
+  .card-title button, .pdf-modal-footer { display: none !important; }
+  #pdf-modal { display: block !important; position: static !important;
+    background: transparent !important; overflow: visible !important; }
+  .pdf-content { margin: 0 !important; padding: 0 !important; }
+  .pdf-page { page-break-after: always; page-break-inside: avoid; }
+  .pdf-page:last-child { page-break-after: auto; }
+  @page { margin: 8mm; size: A4 landscape; }
+}
+/* PDF preview modal */
+.pdf-modal{display:none;position:fixed;inset:0;background:#0009;z-index:500;overflow-y:auto}
+.pdf-modal.show{display:block}
+.pdf-content{background:white;color:black;max-width:none;margin:12px;padding:16px;font-family:'Noto Sans JP',sans-serif;border-radius:8px}
+.pdf-page{margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #333}
+.pdf-page:last-child{border-bottom:none}
+.pdf-race-header{font-size:13px;font-weight:900;border-bottom:2px solid black;padding-bottom:4px;margin-bottom:8px;color:black}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:9px}
+.pdf-tbl th{background:#e8e8e8;border:1px solid #bbb;padding:3px 5px;text-align:center;font-size:8px;font-weight:700;color:#333;white-space:nowrap}
+.pdf-tbl td{border:1px solid #ddd;padding:3px 5px;text-align:center;color:black;font-size:9px;white-space:nowrap}
+.pdf-tbl td.pname{text-align:left;min-width:90px}
+.pdf-tbl .lsep{border-left:3px solid #999!important}
+.pdf-modal-footer{display:flex;gap:10px;justify-content:center;margin-top:16px;padding:10px;background:var(--surface);position:sticky;bottom:0}
+.pdf-print-btn{background:var(--accent);color:#000;font-weight:900;font-size:14px;border:none;border-radius:8px;padding:10px 24px;cursor:pointer}
+.pdf-close-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-size:13px;border-radius:8px;padding:10px 20px;cursor:pointer}
+/* スピナー非表示 */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">🏇 JRA PREDICTOR</div>
+    <div class="logo-sub">v7 WIN5対応</div>
+  </div>
+  <div class="header-right">
+    <button class="pdf-hbtn" onclick="showPdfModal()">📄 PDF</button>
+    <button class="pdf-hbtn" onclick="exportCSV()" style="background:var(--green-dark);margin-left:4px">📊 CSV</button>
+    <button class="calc-hbtn" onclick="calculate()">⚡ 計算</button>
+  </div>
+</header>
+
+<!-- Race selector tabs -->
+<div class="race-tabs" id="race-tabs">
+  <div class="race-tab active" onclick="switchRace(0)" id="rtab0">R1</div>
+  <div class="race-tab" onclick="switchRace(1)" id="rtab1">R2</div>
+  <div class="race-tab" onclick="switchRace(2)" id="rtab2">R3</div>
+  <div class="race-tab" onclick="switchRace(3)" id="rtab3">R4</div>
+  <div class="race-tab" onclick="switchRace(4)" id="rtab4">R5</div>
+</div>
+
+<!-- Function tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('import')">① 取込</div>
+  <div class="tab" onclick="switchTab('input')">② 入力</div>
+  <div class="tab" onclick="switchTab('result')">③ 結果</div>
+  <div class="tab" onclick="switchTab('compare')">📊 指数比較</div>
+  <div class="tab" onclick="switchTab('tenkai')">展開</div>
+  <div class="tab" onclick="switchTab('win5')">WIN5</div>
+  <div class="tab" onclick="switchTab('courses')">📋 コース</div>
+  <div class="tab" onclick="switchTab('config')">⚙️ 設定</div>
+</div>
+
+<!-- ══ IMPORT ══ -->
+<div class="panel active" id="panel-import">
+  <div class="card">
+    <div class="card-title">📥 データ取込</div>
+    <div class="race-tabs-wrap" style="margin-bottom:12px">
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">取込先レース</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" id="import-race-tabs"></div>
+    </div>
+    <div class="hint">
+      <span class="sn">①</span> <b>Claudeのチャット</b>にURLを貼って送信<br>
+      <span class="sn">②</span> ClaudeがJSONを返したら<b>下の枠に貼り付け</b><br>
+      <span class="sn">③</span>「<b>読み込む</b>」→「② 入力」タブで補正を入力して計算
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+      <button onclick="clearJsonArea()" class="btn-sub" style="font-size:10px;padding:4px 10px">クリア</button>
+    </div>
+    <textarea class="json-area" id="json-paste" placeholder='{"race_info":{...},"horses":[...]}' oninput="onJsonPaste()"></textarea>
+    <button class="load-btn" id="load-btn" onclick="loadJson()" disabled>📥 このレースに読み込む</button>
+    <div class="status" id="import-status"></div>
+  </div>
+
+  <!-- CSV再読み込み -->
+  <div class="card">
+    <div class="card-title">
+      <span>♻️ CSV再読み込み</span>
+      <span style="font-size:10px;color:var(--text-dim)">CSVの中身をコピペして復元</span>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:10px;padding:6px 8px;background:var(--surface2);border-radius:6px;line-height:1.8">
+      「📊 CSV」で出力したファイルを開き、<b style="color:var(--text)">全選択→コピー</b>して貼り付けてください。<br>
+      1レースだけでもOK。<span style="color:var(--gold)">⚠ 現在のデータは上書きされます。</span>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+      <button onclick="clearCsvArea()" class="btn-sub" style="font-size:10px;padding:4px 10px">クリア</button>
+    </div>
+    <textarea class="json-area" id="csv-restore" placeholder="CSVの内容をここに貼り付け..." oninput="onCsvPaste()" style="min-height:100px"></textarea>
+    <button class="load-btn" id="csv-load-btn" onclick="loadCsv()" disabled style="background:linear-gradient(135deg,#004d20,#00a040)">♻️ CSVからデータを復元</button>
+    <div class="status" id="csv-status"></div>
+  </div>
+</div>
+
+<!-- ══ INPUT ══ -->
+<div class="panel" id="panel-input">
+  <div class="card">
+    <div class="card-title">
+      <span>🏟️ レース設定</span>
+      <span id="ck-badge" style="font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace"></span>
+    </div>
+
+    <!-- Race name input -->
+    <div style="margin-bottom:10px">
+      <label>レース名（WIN5表示用）</label>
+      <input class="txt-in" type="text" id="race-name" placeholder="例: 東京11R NHKマイルC" oninput="saveRaceName()">
+    </div>
+
+    <div id="race-chips" class="chips" style="display:none"></div>
+
+    <div class="grid2" style="margin-bottom:10px">
+      <div>
+        <label>競馬場</label>
+        <select class="sel" id="venue" onchange="onCourseChange()" style="font-size:12px">
+          <option>東京</option><option>中山</option><option>阪神</option><option>京都</option>
+          <option>中京</option><option>新潟</option><option>福島</option><option>小倉</option>
+          <option>函館</option><option>札幌</option>
+        </select>
+      </div>
+      <div>
+        <label>芝 / ダート</label>
+        <div class="tog-group">
+          <div class="tog on" id="tog-turf" onclick="setSurface('芝')">芝</div>
+          <div class="tog" id="tog-dirt" onclick="setSurface('ダ')">ダート</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px">
+      <div>
+        <label>距離 (m)</label>
+        <select class="sel" id="distance" onchange="onCourseChange()">
+          <option>1000</option><option>1200</option><option>1400</option><option>1500</option>
+          <option value="1600" selected>1600</option><option>1700</option><option>1800</option>
+          <option>1900</option><option>2000</option><option>2100</option><option>2200</option>
+          <option>2400</option><option>2500</option><option>2600</option><option>3000</option>
+          <option>3200</option><option>3600</option>
+        </select>
+      </div>
+      <div>
+        <label>格</label>
+        <div class="tog-group">
+          <div class="tog on" id="tog-op" onclick="setGrade('OP')">OP</div>
+          <div class="tog" id="tog-grade" onclick="setGrade('重賞')">重賞</div>
+          <div class="tog" id="tog-cond" onclick="setGrade('条件')">条件</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label>ペース</label>
+      <div class="tog-group">
+        <div class="tog on" id="tog-pace-n" onclick="setPace('')">設定なし</div>
+        <div class="tog" id="tog-pace-h" onclick="setPace('H')">H（ハイ）</div>
+        <div class="tog" id="tog-pace-m" onclick="setPace('M')">M（平均）</div>
+        <div class="tog" id="tog-pace-s" onclick="setPace('S')">S（スロー）</div>
+      </div>
+    </div>
+    <div id="course-info"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span>🐎 出走馬データ</span>
+      <button class="btn-sub" onclick="clearHorses()">クリア</button>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:6px;line-height:1.8">
+      <b style="color:var(--text)">前日・当日</b>：1〜9（5=基準、大きい=プラス）　<b style="color:var(--text)">SBO</b>・<b style="color:var(--text)">上がり順位</b>：自動入力
+    </div>
+    <div class="horse-scroll">
+      <div class="horse-head">
+        <div></div>
+        <div class="hcol">馬名</div>
+        <div class="hcol">SP</div>
+        <div class="hcol">先行</div>
+        <div class="hcol">末脚</div>
+        <div class="hcol" style="color:var(--orange)">SP<br>最大</div>
+        <div class="hcol">SBO<br>自動</div>
+        <div class="hcol">上がり<br>順位</div>
+        <div class="hcol">前日<br>1-9</div>
+        <div class="hcol">当日<br>1-9</div>
+      </div>
+      <div id="horse-rows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div class="panel" id="panel-result">
+  <div class="card">
+    <div class="card-title">🏆 予想結果</div>
+    <div id="result-area"><div style="color:var(--text-dim);text-align:center;padding:32px;font-size:13px">⚡ 計算ボタンを押してください</div></div>
+  </div>
+</div>
+
+<!-- ══ COMPARE ══ -->
+<div class="panel" id="panel-compare">
+  <div class="card">
+    <div class="card-title">
+      <span>📊 指数比較</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sub" onclick="clearAllCmp()" style="font-size:10px;color:var(--red);border-color:var(--red)">全クリア</button>
+        <button class="btn-sub" onclick="buildCompareTable()">▶ 比較表を生成</button>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:10px;padding:6px 8px;background:var(--surface2);border-radius:6px;line-height:1.8">
+      各サイトからコピペ → 比較表を生成。CSVに出力すれば順位も保存されます。
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;color:#4dd0e1">① 温故知福馬（加重平均）</span>
+        <button onclick="document.getElementById('cmp-fuku').value=''" class="btn-sub" style="font-size:10px;padding:3px 8px">クリア</button>
+      </div>
+      <textarea id="cmp-fuku" class="json-area" style="min-height:80px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:11px" placeholder="1枠1番 戸崎圭太 58&#10;レーベンスティール&#10;加重平均:79　..."></textarea>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;color:#ce93d8">② ウマニティ U指数</span>
+        <button onclick="document.getElementById('cmp-uma').value=''" class="btn-sub" style="font-size:10px;padding:3px 8px">クリア</button>
+      </div>
+      <textarea id="cmp-uma" class="json-area" style="min-height:80px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px" placeholder="1	1		&#10;99.4	C	-&#10;	レーベンスティール&#10;..."></textarea>
+    </div>
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;color:#a5d6a7">③ JBIS スピード指数</span>
+        <button onclick="document.getElementById('cmp-jbis').value=''" class="btn-sub" style="font-size:10px;padding:3px 8px">クリア</button>
+      </div>
+      <textarea id="cmp-jbis" class="json-area" style="min-height:80px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px" placeholder="12番&#10;シリウスコルト&#10;...&#10;101.3"></textarea>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:10px;font-weight:700;color:#ffab91">④ その他（任意・馬番+数値）</span>
+        <button onclick="document.getElementById('cmp-ext').value=''" class="btn-sub" style="font-size:10px;padding:3px 8px">クリア</button>
+      </div>
+      <textarea id="cmp-ext" class="json-area" style="min-height:60px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px" placeholder="1 99.4&#10;2 97.8&#10;..."></textarea>
+    </div>
+    <div id="cmp-log" style="font-size:10px;color:var(--text-dim);padding:6px 8px;background:var(--surface2);border-radius:6px;margin-bottom:10px;display:none"></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table id="cmp-table" style="width:100%;border-collapse:collapse;font-size:11px;min-width:400px">
+        <thead id="cmp-thead"></thead>
+        <tbody id="cmp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TENKAI ══ -->
+<div class="panel" id="panel-tenkai">
+  <div class="card">
+    <div class="card-title">
+      <span>📊 展開予想</span>
+      <button class="btn-sub" onclick="generateTenkai()">⚡ 自動生成</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <label>ペース予想</label>
+        <div class="tog-group">
+          <div class="tog" id="tk-pace-h" onclick="setTkPace('H')">H ハイ</div>
+          <div class="tog on" id="tk-pace-m" onclick="setTkPace('M')">M ミドル</div>
+          <div class="tog" id="tk-pace-s" onclick="setTkPace('S')">S スロー</div>
+        </div>
+      </div>
+      <div>
+        <label>展開まとめ（一言）</label>
+        <input class="txt-in" type="text" id="tk-summary" placeholder="例: スロー→末脚勝負" style="font-size:12px">
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label>展開のポイント</label>
+      <textarea class="json-area" id="tk-point" placeholder="・逃げ・先行馬は少なく&#10;・最後の直線で末脚勝負" style="min-height:60px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:var(--text);line-height:1.8"></textarea>
+    </div>
+    <div style="margin-bottom:4px">
+      <label>有利・不利</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:10px;color:var(--green);margin-bottom:4px">✓ 有利</div>
+          <textarea class="json-area" id="tk-yuri" placeholder="長く脚を使える差し馬" style="min-height:44px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:var(--text);line-height:1.8"></textarea>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--red);margin-bottom:4px">✗ 不利</div>
+          <textarea class="json-area" id="tk-furi" placeholder="純粋な逃げ馬" style="min-height:44px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:var(--text);line-height:1.8"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🐎 ポジション・展開利設定</div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:10px;padding:6px 8px;background:var(--surface2);border-radius:6px">
+      ポジションは先行力から自動推定。展開利ランクとコメントを手動で調整してください。
+    </div>
+    <div id="tk-horse-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <span>📋 展開予想シート</span>
+      <button class="btn-sub" onclick="window.print()">🖨️ 印刷</button>
+    </div>
+    <div id="tk-sheet"></div>
+  </div>
+</div>
+
+<!-- ══ WIN5 ══ -->
+<div class="panel" id="panel-win5">
+  <div class="card">
+    <div class="card-title">🎯 WIN5 まとめ</div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px">各レースの◎（1位予想）を一覧表示します</div>
+    <div id="win5-area"><div style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">各レースを計算すると表示されます</div></div>
+  </div>
+</div>
+
+<!-- ══ COURSES ══ -->
+<div class="panel" id="panel-courses">
+  <div class="card">
+    <div class="card-title">
+      <span>📋 コースマスター</span>
+      <button class="btn-sub" onclick="addCourseRow()">＋ 追加</button>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">変更はすぐ反映されます。追加行は一番下に表示されます。</div>
+
+    <!-- 追加フォーム -->
+    <div id="course-add-form" style="display:none;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:8px;letter-spacing:1px">新規コース追加</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
+        <div><label>格</label>
+          <select class="sel" id="af-grade" style="font-size:12px">
+            <option>OP</option><option>重賞</option><option>条件</option>
+          </select>
+        </div>
+        <div><label>競馬場</label>
+          <select class="sel" id="af-venue" style="font-size:12px">
+            <option>東京</option><option>中山</option><option>阪神</option><option>京都</option>
+            <option>中京</option><option>新潟</option><option>福島</option><option>小倉</option>
+            <option>函館</option><option>札幌</option>
+          </select>
+        </div>
+        <div><label>芝/ダ</label>
+          <select class="sel" id="af-surf" style="font-size:12px">
+            <option>芝</option><option>ダ</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px">
+        <div><label>距離(m)</label><input class="num-in" type="number" id="af-dist" placeholder="1600"></div>
+        <div><label>RC倍率</label><input class="num-in" type="number" id="af-rc" value="8" step="0.1"></div>
+        <div><label>ペース</label>
+          <select class="sel" id="af-pace" style="font-size:12px">
+            <option value="null">なし</option><option value="H">H</option><option value="M">M</option><option value="S">S</option>
+          </select>
+        </div>
+        <div><label>SBOトップ抑制</label>
+          <select class="sel" id="af-sbo" style="font-size:12px">
+            <option value="false">OFF</option><option value="true">ON</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+        <div><label>先行係数</label><input class="num-in" type="number" id="af-sen" value="1" step="0.01"></div>
+        <div><label>末脚係数</label><input class="num-in" type="number" id="af-sue" value="1" step="0.01"></div>
+        <div><label>RC③係数</label><input class="num-in" type="number" id="af-rc3" value="1.2" step="0.01"></div>
+        <div><label>上がり1位</label><input class="num-in" type="number" id="af-ue1" value="0" step="0.5"></div>
+        <div><label>上がり2-3位</label><input class="num-in" type="number" id="af-ue23" value="0" step="0.5"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="calc-hbtn" onclick="saveCourseRow()" style="flex:1">保存</button>
+        <button class="btn-sub" onclick="document.getElementById('course-add-form').style.display='none'">キャンセル</button>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table style="width:100%;border-collapse:collapse;font-size:10px" id="cm-edit-table">
+        <thead>
+          <tr style="background:var(--surface2)">
+            <th style="padding:5px 4px;color:var(--text-dim);text-align:left;border-bottom:1px solid var(--border)">KEY</th>
+            <th style="padding:5px 4px;color:var(--text-dim);border-bottom:1px solid var(--border)">RC倍</th>
+            <th style="padding:5px 4px;color:var(--text-dim);border-bottom:1px solid var(--border)">先行</th>
+            <th style="padding:5px 4px;color:var(--text-dim);border-bottom:1px solid var(--border)">末脚</th>
+            <th style="padding:5px 4px;color:var(--text-dim);border-bottom:1px solid var(--border)">RC③</th>
+            <th style="padding:5px 4px;color:var(--text-dim);border-bottom:1px solid var(--border)">UE1</th>
+            <th style="padding:5px 4px;color:var(--text-dim);border-bottom:1px solid var(--border)">UE23</th>
+            <th style="padding:5px 4px;color:var(--text-dim);border-bottom:1px solid var(--border)">SBO抑</th>
+            <th style="padding:5px 4px;border-bottom:1px solid var(--border)"></th>
+          </tr>
+        </thead>
+        <tbody id="cm-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONFIG ══ -->
+<div class="panel" id="panel-config">
+  <div class="card">
+    <div class="card-title">⚙️ 計算係数（v7）</div>
+    <div class="grid2" style="gap:10px;margin-bottom:10px">
+      <div><label>SP係数（B5）</label><input class="num-in" type="number" id="coef-sp" value="1" step="0.01"></div>
+      <div><label>先行係数（B6）</label><input class="num-in" type="number" id="coef-sen" value="1" step="0.01"></div>
+      <div><label>末脚係数（B7）</label><input class="num-in" type="number" id="coef-sue" value="1.2" step="0.01"></div>
+      <div><label>前日補正係数（B8）</label><input class="num-in" type="number" id="coef-zen" value="0.45" step="0.01"></div>
+      <div><label>当日補正係数（B9）</label><input class="num-in" type="number" id="coef-today" value="0.65" step="0.01"></div>
+      <div><label>RC合計倍率（B33）</label><input class="num-in" type="number" id="coef-rc-mul" value="7" step="0.1"></div>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">RC01〜08 閾値（TH）設定（設定シート D列）</div>
+    <div class="grid2" style="gap:8px;margin-bottom:10px">
+      <div><label>RC01 閾値（先行≥）</label><input class="num-in" type="number" id="rc01-th" value="95" step="1"></div>
+      <div><label>RC02 閾値（末脚≥）</label><input class="num-in" type="number" id="rc02-th" value="95" step="1"></div>
+      <div><label>RC03 閾値（先行≥、係数1.2）</label><input class="num-in" type="number" id="rc03-th" value="88" step="1"></div>
+      <div><label>RC04 閾値（SP≥88かつ先行≥50、係数1.3）</label><input class="num-in" type="number" id="rc04-sp-th" value="88" step="1"></div>
+      <div><label>RC05 閾値（SP≥90 or 先行≥56）</label><input class="num-in" type="number" id="rc05-th" value="90" step="1"></div>
+      <div><label>RC06 コース固定（OFF=スキップ）</label><input class="num-in" type="number" id="rc06-coef" value="1" step="0.01"></div>
+      <div><label>RC07 閾値（SP≥88かつ先行≥52）</label><input class="num-in" type="number" id="rc07-sp-th" value="88" step="1"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="grid2" style="gap:8px;margin-bottom:10px">
+      <div><label>SBOトップ抑制ON(1)/OFF(0)</label><input class="num-in" type="number" id="sbo-sup-on" value="0" min="0" max="1"></div>
+      <div><label>SBOトップ抑制係数</label><input class="num-in" type="number" id="sbo-sup-coef" value="0.97" step="0.01"></div>
+      <div><label>前走上がり1位ボーナス（K7）</label><input class="num-in" type="number" id="ue1-bonus" value="4" step="1"></div>
+      <div><label>前走上がり2-3位ボーナス（K8）</label><input class="num-in" type="number" id="ue23-bonus" value="2" step="1"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="grid3" style="gap:8px">
+      <div><label>救済開始順位</label><input class="num-in" type="number" id="rescue-s" value="6"></div>
+      <div><label>救済上限順位</label><input class="num-in" type="number" id="rescue-e" value="8"></div>
+      <div><label>救済ボーナス</label><input class="num-in" type="number" id="rescue-b" value="0" step="0.1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PDF Modal -->
+<div class="pdf-modal" id="pdf-modal">
+  <div class="pdf-content" id="pdf-content-area"></div>
+  <div class="pdf-modal-footer">
+    <button class="pdf-print-btn" onclick="printPdf()">🖨️ 印刷 / PDF保存</button>
+    <button class="pdf-close-btn" onclick="closePdfModal()">閉じる</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  COURSE MASTER (v7 updated)
+// ══════════════════════════════════════════
+const CM = {};
+[
+  ['OP','中京','ダ','1200','8.0',1.12,1.16,1.15,2.0,1.0,false,null,0],
+  ['OP','中京','芝','1200','8.0',1.1,1.15,1.15,0.5,0.5,false,null,1.03],
+  ['重賞','中京','芝','1200','8.0',0.95,1.28,1.08,1.0,0.5,false,'H',1.05],
+  ['重賞','中京','芝','1200','8.0',1.05,1.18,1.12,0.5,0.5,false,'M',1.03],
+  ['重賞','中京','芝','1200','8.0',1.15,1.08,1.18,0,0.3,false,'S',1.0],
+  ['OP','中京','ダ','1400','8.0',1.14,1.16,1.15,2.0,1.0,false,null,0],
+  ['OP','中京','芝','1400','8.0',1.08,1.18,1.15,1.0,0.5,false,null,1.05],
+  ['重賞','中京','芝','1400','8.0',0.92,1.3,1.08,1.0,0.5,false,'H',1.08],
+  ['重賞','中京','芝','1400','8.0',1.02,1.2,1.12,0.5,0.5,false,'M',1.05],
+  ['重賞','中京','芝','1400','8.0',1.12,1.1,1.18,0,0.5,false,'S',1.03],
+  ['OP','中京','芝','1600','8.0',1.05,1.2,1.12,1.0,0.5,false,null,1.08],
+  ['重賞','中京','芝','1600','8.0',0.9,1.32,1.05,1.0,0.5,false,'H',1.1],
+  ['重賞','中京','芝','1600','8.0',1.0,1.22,1.1,0.5,0.5,false,'M',1.08],
+  ['重賞','中京','芝','1600','8.0',1.1,1.12,1.15,0,0.5,false,'S',1.05],
+  ['OP','中京','ダ','1800','8.0',1.08,1.18,1.18,0.5,0.5,false,null,1.1],
+  ['重賞','中京','ダ','1800','8.0',0.92,1.3,1.08,1.0,0.5,false,'H',1.12],
+  ['重賞','中京','ダ','1800','8.0',1.02,1.2,1.12,0.5,0.5,false,'M',1.1],
+  ['重賞','中京','ダ','1800','8.0',1.12,1.1,1.18,0,0.3,false,'S',1.08],
+  ['OP','中京','芝','2000','8.0',1.08,1.18,1.18,0.5,0.5,false,null,1.12],
+  ['重賞','中京','芝','2000','8.0',0.92,1.28,1.1,1.0,0.5,false,'H',1.15],
+  ['重賞','中京','芝','2000','8.0',1.02,1.2,1.15,0.5,0.5,false,'M',1.12],
+  ['重賞','中京','芝','2000','8.0',1.12,1.1,1.2,0,0.5,false,'S',1.08],
+  ['条件','中京','芝','2200','8.0',0.98,1.22,1.1,1.0,0.5,false,'H',1.0],
+  ['条件','中京','芝','2200','8.0',1.08,1.15,1.15,0.5,0.5,false,'M',1.12],
+  ['条件','中京','芝','2200','8.0',1.18,1.05,1.2,0,0.5,false,'S',1.08],
+  ['OP','中山','ダ','1200','8.0',1.15,1.05,1.1,2.0,1.0,false,null,0],
+  ['OP','中山','芝','1200','8.0',1.22,1.02,1.2,0.3,0.3,false,null,1.0],
+  ['重賞','中山','芝','1200','8.0',1.08,1.12,1.1,0.5,0.5,false,'H',1.03],
+  ['重賞','中山','芝','1200','8.0',1.18,1.05,1.15,0.3,0.3,false,'M',1.0],
+  ['重賞','中山','芝','1200','8.0',1.28,0.95,1.22,0,0.3,false,'S',0.98],
+  ['OP','中山','芝','1600','8.0',1.18,1.08,1.18,0.5,0.5,false,null,1.05],
+  ['重賞','中山','芝','1600','8.0',1.02,1.18,1.1,0.5,0.5,false,'H',1.08],
+  ['重賞','中山','芝','1600','8.0',1.12,1.1,1.15,0.5,0.5,false,'M',1.05],
+  ['重賞','中山','芝','1600','8.0',1.22,1.0,1.2,0,0.3,false,'S',1.03],
+  ['OP','中山','ダ','1800','8.0',1.2,1.05,1.22,0.3,0.5,false,null,1.08],
+  ['重賞','中山','ダ','1800','8.0',1.08,1.15,1.12,0.5,0.5,false,'H',1.1],
+  ['重賞','中山','ダ','1800','8.0',1.18,1.08,1.18,0.3,0.5,false,'M',1.08],
+  ['重賞','中山','ダ','1800','8.0',1.28,0.98,1.25,0,0.3,false,'S',1.05],
+  ['OP','中山','芝','1800','8.0',1.2,1.05,1.2,0.3,0.5,false,null,1.08],
+  ['重賞','中山','芝','1800','8.0',1.05,1.15,1.1,0.5,0.5,false,'H',1.1],
+  ['重賞','中山','芝','1800','8.0',1.15,1.08,1.15,0.3,0.5,false,'M',1.08],
+  ['重賞','中山','芝','1800','8.0',1.25,0.98,1.22,0,0.3,false,'S',1.05],
+  ['OP','中山','芝','2000','8.0',1.18,1.08,1.22,0.3,0.5,false,null,1.12],
+  ['重賞','中山','芝','2000','8.0',1.0,1.18,1.12,0.5,0.5,false,'H',1.15],
+  ['重賞','中山','芝','2000','8.0',1.1,1.1,1.18,0.3,0.5,false,'M',1.12],
+  ['重賞','中山','芝','2000','8.0',1.2,1.0,1.25,0,0.3,false,'S',1.08],
+  ['OP','中山','芝','2200','8.0',1.18,1.08,1.22,0.3,0.05,false,null,1.15],
+  ['重賞','中山','芝','2200','8.0',1.02,1.18,1.12,1.5,0.5,false,'H',1.18],
+  ['重賞','中山','芝','2200','8.0',1.12,1.1,1.18,0.3,0.5,false,'M',1.15],
+  ['重賞','中山','芝','2200','8.0',1.22,1.0,1.25,0,0.3,false,'S',1.12],
+  ['OP','中山','芝','2500','8.0',1.15,1.1,1.25,0.3,0.5,false,null,1.2],
+  ['重賞','中山','芝','2500','8.0',1.0,1.2,1.15,0.5,0.5,false,'H',1.22],
+  ['重賞','中山','芝','2500','8.0',1.1,1.12,1.22,0.3,0.5,false,'M',1.2],
+  ['重賞','中山','芝','2500','8.0',1.2,1.02,1.3,0,0.3,false,'S',1.18],
+  ['重賞','中山','芝','3600','8.0',1.0,1.2,1.2,0.3,0.5,false,'H',1.3],
+  ['重賞','中山','芝','3600','8.0',1.1,1.12,1.28,0.3,0.5,false,'M',1.28],
+  ['重賞','中山','芝','3600','8.0',1.2,1.02,1.35,0,0.3,false,'S',1.25],
+  ['OP','京都','ダ','1200','8.0',1.05,1.05,1.0,2.0,1.0,false,null,0],
+  ['OP','京都','芝','1200','8.0',1.22,1.05,1.18,0.3,0.3,false,null,1.0],
+  ['重賞','京都','芝','1200','8.0',1.08,1.15,1.1,0.5,0.5,false,'H',1.03],
+  ['重賞','京都','芝','1200','8.0',1.18,1.08,1.15,0.3,0.3,false,'M',1.0],
+  ['重賞','京都','芝','1200','8.0',1.28,0.98,1.2,0,0.3,false,'S',0.98],
+  ['OP','京都','ダ','1400','8.0',1.05,1.15,1.12,3.0,1.0,false,null,0],
+  ['OP','京都','芝','1400','8.0',1.18,1.08,1.18,0.5,0.5,false,null,1.03],
+  ['重賞','京都','芝','1400','8.0',1.05,1.18,1.1,1.0,0.5,false,'H',1.05],
+  ['重賞','京都','芝','1400','8.0',1.15,1.1,1.15,0.5,0.5,false,'M',1.03],
+  ['重賞','京都','芝','1400','8.0',1.25,1.0,1.2,0,0.3,false,'S',1.0],
+  ['OP','京都','芝','1600','8.0',1.12,1.1,1.18,1.0,0.5,false,null,1.05],
+  ['重賞','京都','芝','1600','8.0',1.0,1.25,1.1,0.5,0.5,false,'H',1.08],
+  ['重賞','京都','芝','1600','8.0',1.08,1.18,1.15,0.6,0.5,false,'M',1.08],
+  ['重賞','京都','芝','1600','8.0',1.18,1.08,1.2,0,0.5,false,'S',1.05],
+  ['OP','京都','ダ','1800','8.0',1.18,1.08,1.2,0.5,0.5,false,null,1.08],
+  ['重賞','京都','ダ','1800','8.0',1.05,1.18,1.12,0.5,0.5,false,'H',1.1],
+  ['重賞','京都','ダ','1800','8.0',1.15,1.1,1.18,0.5,0.5,false,'M',1.08],
+  ['重賞','京都','ダ','1800','8.0',1.25,1.0,1.25,0,0.3,false,'S',1.05],
+  ['OP','京都','芝','1800','8.0',1.15,1.08,1.18,1.0,0.5,false,null,1.18],
+  ['重賞','京都','芝','1800','8.0',1.0,1.23,1.1,0.5,0.5,false,'H',1.1],
+  ['重賞','京都','芝','1800','8.0',1.1,1.15,1.15,0.3,0.5,false,'M',1.08],
+  ['重賞','京都','芝','1800','8.0',1.2,1.05,1.2,0,0.5,false,'S',1.05],
+  ['OP','京都','ダ','1900','8.0',1.14,1.14,1.22,1.0,1.0,false,null,0],
+  ['重賞','京都','ダ','1900','8.0',1.08,1.18,1.18,0.5,0.5,false,'H',1.05],
+  ['重賞','京都','ダ','1900','8.0',1.14,1.14,1.22,1.0,1.0,false,'M',1.05],
+  ['重賞','京都','ダ','1900','8.0',1.14,1.14,1.22,1.0,1.0,false,'S',1.05],
+  ['OP','京都','芝','2000','8.0',1.15,1.1,1.2,1.0,0.5,false,null,1.08],
+  ['重賞','京都','芝','2000','8.0',0.98,1.22,1.12,0.5,0.5,false,'H',1.12],
+  ['重賞','京都','芝','2000','8.0',1.08,1.15,1.18,0.3,0.5,false,'M',1.1],
+  ['重賞','京都','芝','2000','8.0',1.18,1.05,1.22,0,0.5,false,'S',1.08],
+  ['OP','京都','芝','2200','8.0',1.15,1.1,1.22,0.5,0.5,false,null,1.12],
+  ['重賞','京都','芝','2200','8.0',1.0,1.22,1.12,0.5,0.5,false,'H',1.15],
+  ['重賞','京都','芝','2200','8.0',1.1,1.15,1.18,0.3,0.5,false,'M',1.12],
+  ['重賞','京都','芝','2200','8.0',1.2,1.05,1.22,0,0.5,false,'S',1.08],
+  ['OP','京都','芝','2400','8.0',1.12,1.12,1.22,0.5,0.5,false,null,1.15],
+  ['重賞','京都','芝','2400','8.0',0.98,1.24,1.12,0.5,0.5,false,'H',1.18],
+  ['重賞','京都','芝','2400','8.0',1.08,1.16,1.18,0.3,0.5,false,'M',1.15],
+  ['重賞','京都','芝','2400','8.0',1.18,1.06,1.22,0,0.5,false,'S',1.12],
+  ['OP','京都','芝','3000','8.0',1.15,1.1,1.28,0.3,0.5,false,null,1.22],
+  ['重賞','京都','芝','3000','8.0',1.0,1.22,1.18,0.3,0.5,false,'H',1.25],
+  ['重賞','京都','芝','3000','8.0',1.1,1.15,1.25,0.3,0.5,false,'M',1.22],
+  ['重賞','京都','芝','3000','8.0',1.2,1.05,1.3,0,0.5,false,'S',1.18],
+  ['OP','京都','芝','3200','8.0',1.12,1.12,1.3,0.3,0.5,false,null,1.25],
+  ['重賞','京都','芝','3200','8.0',0.98,1.24,1.18,0.3,0.5,false,'H',1.28],
+  ['重賞','京都','芝','3200','8.0',1.08,1.16,1.28,0.3,0.5,false,'M',1.25],
+  ['重賞','京都','芝','3200','8.0',1.18,1.06,1.32,0,0.5,false,'S',1.22],
+  ['OP','函館','ダ','1000','8.0',1.25,0.95,0.95,2.0,1.0,false,null,0],
+  ['OP','函館','芝','1200','8.0',1.25,1.0,1.2,0,0.3,false,null,1.0],
+  ['重賞','函館','芝','1200','8.0',1.1,1.12,1.1,0.5,0.5,false,'H',1.03],
+  ['重賞','函館','芝','1200','8.0',1.2,1.05,1.15,0.3,0.3,false,'M',1.0],
+  ['重賞','函館','芝','1200','8.0',1.3,0.95,1.22,0,0.3,false,'S',0.98],
+  ['OP','函館','ダ','1700','8.0',1.22,1.05,1.22,0.0,0.0,false,null,0],
+  ['OP','函館','芝','1800','8.0',1.2,1.05,1.2,0.3,0.5,false,null,1.08],
+  ['重賞','函館','芝','1800','8.0',1.05,1.15,1.1,0.5,0.5,false,'H',1.1],
+  ['重賞','函館','芝','1800','8.0',1.15,1.08,1.15,0.3,0.5,false,'M',1.08],
+  ['重賞','函館','芝','1800','8.0',1.25,0.98,1.22,0,0.3,false,'S',1.05],
+  ['OP','函館','芝','2000','8.0',1.2,1.05,1.22,0.3,0.5,false,null,1.12],
+  ['重賞','函館','芝','2000','8.0',1.05,1.15,1.12,0.3,0.5,false,'H',1.15],
+  ['重賞','函館','芝','2000','8.0',1.15,1.08,1.18,0.3,0.5,false,'M',1.12],
+  ['重賞','函館','芝','2000','8.0',1.25,0.98,1.25,0,0.3,false,'S',1.08],
+  ['OP','函館','芝','2600','8.0',1.18,1.05,1.28,0.3,0.5,false,null,1.25],
+  ['重賞','函館','芝','2600','8.0',1.02,1.18,1.15,0.5,0.5,false,'H',1.28],
+  ['重賞','函館','芝','2600','8.0',1.12,1.1,1.22,0.3,0.5,false,'M',1.25],
+  ['重賞','函館','芝','2600','8.0',1.22,1.0,1.3,0,0.3,false,'S',1.2],
+  ['OP','小倉','ダ','1000','8.0',1.2,0.98,0.098,2.0,1.0,false,null,0],
+  ['OP','小倉','芝','1200','8.0',1.18,1.08,1.18,0.5,0.3,false,null,1.0],
+  ['重賞','小倉','芝','1200','8.0',1.0,1.18,1.1,1.0,0.5,false,'H',1.03],
+  ['重賞','小倉','芝','1200','8.0',1.12,1.12,1.15,0.5,0.3,false,'M',1.0],
+  ['重賞','小倉','芝','1200','8.0',1.22,1.02,1.2,0,0.3,false,'S',0.98],
+  ['OP','小倉','ダ','1700','8.0',1.12,1.16,1.18,2.0,1.0,false,null,0],
+  ['OP','小倉','芝','1800','8.0',1.15,1.1,1.18,0.5,0.5,false,null,1.05],
+  ['重賞','小倉','芝','1800','8.0',1.0,1.2,1.1,1.0,0.5,false,'H',1.08],
+  ['重賞','小倉','芝','1800','8.0',1.12,1.12,1.15,0.5,0.5,false,'M',1.08],
+  ['重賞','小倉','芝','1800','8.0',1.22,1.02,1.2,0,0.3,false,'S',1.03],
+  ['OP','小倉','芝','2000','8.0',1.15,1.1,1.18,0.5,0.5,false,null,1.08],
+  ['重賞','小倉','芝','2000','8.0',1.0,1.2,1.1,1.0,0.5,false,'H',1.1],
+  ['重賞','小倉','芝','2000','8.0',1.12,1.12,1.15,0.5,0.5,false,'M',1.08],
+  ['重賞','小倉','芝','2000','8.0',1.22,1.02,1.2,0,0.3,false,'S',1.05],
+  ['OP','小倉','芝','2600','8.0',1.15,1.08,1.25,0.3,0.5,false,null,1.22],
+  ['重賞','小倉','芝','2600','8.0',1.0,1.18,1.12,0.5,0.5,false,'H',1.25],
+  ['重賞','小倉','芝','2600','8.0',1.1,1.1,1.2,0.3,0.5,false,'M',1.22],
+  ['重賞','小倉','芝','2600','8.0',1.2,1.0,1.28,0,0.3,false,'S',1.18],
+  ['OP','新潟','芝','1000','8.0',1.1,1.05,1.18,0,0.3,false,null,1.03],
+  ['重賞','新潟','芝','1000','8.0',0.95,1.18,1.1,0.3,0.3,false,'H',1.05],
+  ['重賞','新潟','芝','1000','8.0',1.05,1.0,1.15,0,0.3,false,'M',1.05],
+  ['OP','新潟','ダ','1200','8.0',0.95,1.2,1.05,3.0,2.0,false,null,0],
+  ['OP','新潟','芝','1200','8.0',1.05,1.18,1.15,1.0,0.5,false,null,1.05],
+  ['重賞','新潟','芝','1200','8.0',0.92,1.28,1.08,1.0,0.5,false,'H',1.08],
+  ['重賞','新潟','芝','1200','8.0',1.0,1.2,1.12,0.5,0.5,false,'M',1.05],
+  ['重賞','新潟','芝','1200','8.0',1.1,1.1,1.18,0,0.5,false,'S',1.03],
+  ['OP','新潟','芝','1400','8.0',1.0,1.22,1.12,1.0,0.5,false,null,1.08],
+  ['重賞','新潟','芝','1400','8.0',0.88,1.32,1.05,1.0,0.5,false,'H',1.1],
+  ['重賞','新潟','芝','1400','8.0',0.98,1.24,1.1,0.5,0.5,false,'M',1.08],
+  ['重賞','新潟','芝','1400','8.0',1.08,1.14,1.15,0,0.5,false,'S',1.05],
+  ['OP','新潟','芝','1600','8.0',1.0,1.25,1.1,1.0,0.5,false,null,1.1],
+  ['重賞','新潟','芝','1600','8.0',0.85,1.35,1.02,1.0,0.5,false,'H',1.12],
+  ['重賞','新潟','芝','1600','8.0',0.95,1.28,1.08,0.5,0.5,false,'M',1.1],
+  ['重賞','新潟','芝','1600','8.0',1.05,1.18,1.12,0,0.5,false,'S',1.08],
+  ['OP','新潟','ダ','1800','8.0',0.95,1.15,1.12,3.0,2.0,false,null,0],
+  ['OP','新潟','芝','1800','8.0',0.98,1.25,1.12,1.0,0.5,false,null,1.12],
+  ['重賞','新潟','芝','1800','8.0',0.85,1.35,1.05,1.0,0.5,false,'H',1.15],
+  ['重賞','新潟','芝','1800','8.0',0.95,1.28,1.1,0.5,0.5,false,'M',1.12],
+  ['重賞','新潟','芝','1800','8.0',1.05,1.18,1.15,0,0.5,false,'S',1.08],
+  ['OP','新潟','芝','2000','8.0',1.05,1.15,1.18,0,0.3,false,null,1.08],
+  ['重賞','新潟','芝','2000','8.0',0.93,1.22,1.1,0,0.2,false,'H',1.08],
+  ['重賞','新潟','芝','2000','8.0',0.97,1.18,1.12,0,0.2,false,'M',1.08],
+  ['重賞','新潟','芝','2000','8.0',1.03,1.1,1.15,0,0.2,false,'S',1.05],
+  ['OP','新潟','芝','2200','8.0',1.0,1.22,1.18,0.5,0.5,false,null,1.18],
+  ['重賞','新潟','芝','2200','8.0',0.9,1.3,1.1,1.0,0.5,false,'H',1.22],
+  ['重賞','新潟','芝','2200','8.0',1.0,1.22,1.15,0.5,0.5,false,'M',1.18],
+  ['重賞','新潟','芝','2200','8.0',1.1,1.12,1.2,0,0.5,false,'S',1.15],
+  ['OP','札幌','ダ','1000','8.0',1.2,0.95,0.95,2.0,1.0,false,null,0],
+  ['OP','札幌','芝','1200','8.0',1.22,1.03,1.2,0.3,0.3,false,null,1.0],
+  ['重賞','札幌','芝','1200','8.0',1.08,1.12,1.1,0.5,0.5,false,'H',1.03],
+  ['重賞','札幌','芝','1200','8.0',1.18,1.05,1.15,0.3,0.3,false,'M',1.0],
+  ['重賞','札幌','芝','1200','8.0',1.28,0.95,1.22,0,0.3,false,'S',0.98],
+  ['OP','札幌','芝','1500','8.0',1.08,1.15,1.1,0.5,0.5,false,'H',1.05],
+  ['OP','札幌','芝','1500','8.0',1.18,1.08,1.15,0.3,0.5,false,'M',1.03],
+  ['OP','札幌','芝','1500','8.0',1.28,0.98,1.2,0,0.3,false,'S',1.0],
+  ['OP','札幌','ダ','1700','8.0',1.18,1.08,1.18,1.0,0.0,false,null,0],
+  ['OP','札幌','芝','1800','8.0',1.18,1.08,1.2,0.3,0.5,false,null,1.08],
+  ['重賞','札幌','芝','1800','8.0',1.02,1.18,1.1,0.5,0.5,false,'H',1.1],
+  ['重賞','札幌','芝','1800','8.0',1.12,1.1,1.15,0.3,0.5,false,'M',1.08],
+  ['重賞','札幌','芝','1800','8.0',1.22,1.0,1.22,0,0.3,false,'S',1.05],
+  ['OP','札幌','芝','2000','8.0',1.15,1.1,1.22,0.3,0.5,false,null,1.12],
+  ['重賞','札幌','芝','2000','8.0',1.0,1.2,1.12,0.5,0.5,false,'H',1.15],
+  ['重賞','札幌','芝','2000','8.0',1.1,1.12,1.18,0.3,0.5,false,'M',1.12],
+  ['重賞','札幌','芝','2000','8.0',1.2,1.02,1.25,0,0.3,false,'S',1.08],
+  ['OP','札幌','芝','2600','8.0',1.0,1.18,1.15,0.5,0.5,false,'H',1.25],
+  ['OP','札幌','芝','2600','8.0',1.1,1.1,1.22,0.3,0.5,false,'M',1.22],
+  ['OP','札幌','芝','2600','8.0',1.2,1.0,1.3,0,0.3,false,'S',1.18],
+  ['OP','東京','ダ','1400','8.0',0.95,1.22,1.15,4.0,2.0,false,null,0],
+  ['OP','東京','芝','1400','8.0',1.05,1.2,1.15,1.0,0.5,false,null,1.08],
+  ['重賞','東京','芝','1400','8.0',0.9,1.3,1.08,1.0,0.5,false,'H',1.1],
+  ['重賞','東京','芝','1400','8.0',0.98,1.22,1.12,0.5,0.5,false,'M',1.08],
+  ['重賞','東京','芝','1400','8.0',1.08,1.12,1.18,0,0.5,false,'S',1.05],
+  ['OP','東京','ダ','1600','8.0',1.12,1.15,1.18,0.5,0.5,false,null,1.05],
+  ['重賞','東京','ダ','1600','8.0',0.95,1.28,1.08,1.0,0.5,false,'H',1.08],
+  ['重賞','東京','ダ','1600','8.0',1.05,1.18,1.12,0.5,0.5,false,'M',1.05],
+  ['重賞','東京','ダ','1600','8.0',1.15,1.08,1.18,0,0.3,false,'S',1.03],
+  ['OP','東京','芝','1600','7.0',1.0,1.2,1.2,4.0,2.0,false,null,0],
+  ['重賞','東京','芝','1600','7.0',0.93,1.28,1.1,0,4.0,false,'H',1.12],
+  ['重賞','東京','芝','1600','7.0',1.0,1.18,1.15,0,4.0,false,'M',1.08],
+  ['重賞','東京','芝','1600','7.0',1.1,1.0,1.2,0,4.0,false,'S',1.0],
+  ['OP','東京','芝','1800','7.0',1.1,1.18,1.15,1.0,0.5,false,null,1.1],
+  ['重賞','東京','芝','1800','7.0',0.92,1.28,1.1,0.2,0.4,false,'H',1.15],
+  ['重賞','東京','芝','1800','7.0',0.98,1.2,1.15,0.2,0.4,false,'M',1.12],
+  ['重賞','東京','芝','1800','7.0',1.05,1.15,1.18,0.2,0.4,false,'S',1.1],
+  ['OP','東京','芝','2000','6.0',1.08,1.18,1.18,0.5,0.5,false,null,1.12],
+  ['重賞','東京','芝','2000','6.0',0.92,1.28,1.1,1.0,0.5,false,'H',1.15],
+  ['重賞','東京','芝','2000','6.0',1.0,1.2,1.15,0.5,0.5,false,'M',1.12],
+  ['重賞','東京','芝','2000','6.0',1.08,1.12,1.18,0,0.5,false,'S',1.1],
+  ['OP','東京','ダ','2100','8.0',1.1,1.15,1.22,0.5,0.5,false,null,1.15],
+  ['重賞','東京','ダ','2100','8.0',0.95,1.25,1.12,1.0,0.5,false,'H',1.2],
+  ['重賞','東京','ダ','2100','8.0',1.05,1.18,1.18,0.5,0.5,false,'M',1.15],
+  ['重賞','東京','ダ','2100','8.0',1.15,1.08,1.25,0,0.3,false,'S',1.12],
+  ['条件','東京','芝','2400','8.0',1.0,1.0,1.2,0.0,0.0,false,null,0],
+  ['OP','東京','芝','2400','8.0',1.0,1.0,1.2,0,0.0,false,null,0],
+  ['重賞','東京','芝','2400','8.0',0.88,1.28,1.12,0.5,0.3,false,'H',1.2],
+  ['重賞','東京','芝','2400','8.0',0.95,1.28,1.1,1.0,0.5,false,'M',1.18],
+  ['重賞','東京','芝','2400','8.0',0.92,1.35,1.05,0.5,0.3,false,'S',1.25],
+  ['OP','東京','芝','2500','8.0',1.05,1.18,1.2,0.5,0.5,false,null,1.2],
+  ['重賞','東京','芝','2500','8.0',0.92,1.3,1.1,1.0,5.0,false,'H',1.25],
+  ['重賞','東京','芝','2500','8.0',1.0,1.22,1.18,0.5,0.5,false,'M',1.22],
+  ['重賞','東京','芝','2500','8.0',1.08,1.12,1.22,0,0.5,false,'S',1.18],
+  ['OP','東京','芝','3400','6.0',1.08,1.15,1.28,0.3,0.5,false,null,1.28],
+  ['重賞','東京','芝','3400','6.0',0.95,1.25,1.18,0.5,0.5,false,'H',1.32],
+  ['重賞','東京','芝','3400','6.0',1.02,1.18,1.25,0.3,0.5,false,'M',1.3],
+  ['重賞','東京','芝','3400','6.0',1.12,1.08,1.3,0,0.5,false,'S',1.25],
+  ['OP','福島','芝','1200','8.0',1.05,1.15,1.1,0.5,0.5,false,'H',1.03],
+  ['OP','福島','芝','1200','8.0',1.15,1.08,1.15,0.3,0.3,false,'M',1.0],
+  ['OP','福島','芝','1200','8.0',1.25,0.98,1.2,0,0.3,false,'S',0.98],
+  ['OP','福島','ダ','1700','8.0',1.15,1.12,1.18,1.0,1.0,false,null,0],
+  ['条件','福島','芝','1800','8.0',0.95,1.25,1.15,0,0,false,'H',1.05],
+  ['条件','福島','芝','1800','8.0',1.08,0.98,1.0,0,0,false,'S',1.0],
+  ['OP','福島','芝','1800','8.0',1.0,1.0,1.2,0,0,false,null,0],
+  ['重賞','福島','芝','1800','8.0',0.98,1.18,1.1,0.5,0.5,false,'H',1.08],
+  ['重賞','福島','芝','1800','8.0',1.08,1.1,1.15,0.3,0.5,false,'M',1.05],
+  ['重賞','福島','芝','1800','8.0',1.18,1.0,1.22,0,0.3,false,'S',1.03],
+  ['条件','福島','芝','2000','8.0',0.93,1.22,1.1,0,0,false,'H',1.05],
+  ['条件','福島','芝','2000','8.0',1.03,1.05,1.0,0,0,false,'S',1.03],
+  ['OP','福島','芝','2000','8.0',1.05,0.95,1.2,0,0,false,null,0],
+  ['重賞','福島','芝','2000','8.0',0.95,1.22,1.1,0.5,0.5,false,'H',1.1],
+  ['重賞','福島','芝','2000','8.0',1.05,1.12,1.15,0.3,0.5,false,'M',1.08],
+  ['重賞','福島','芝','2000','8.0',1.15,1.02,1.22,0,0.3,false,'S',1.05],
+  ['OP','福島','芝','2600','8.0',0.98,1.18,1.15,0.5,0.5,false,'H',1.22],
+  ['OP','福島','芝','2600','8.0',1.08,1.1,1.22,0.3,0.5,false,'M',1.2],
+  ['OP','福島','芝','2600','8.0',1.18,1.0,1.28,0,0.3,false,'S',1.15],
+  ['OP','阪神','ダ','1200','8.0',1.18,1.08,1.15,2.0,1.0,false,null,0],
+  ['OP','阪神','芝','1200','8.0',1.18,1.08,1.18,0.5,0.5,false,null,1.03],
+  ['重賞','阪神','芝','1200','8.0',1.02,1.2,1.08,1.0,0.5,false,'H',1.05],
+  ['重賞','阪神','芝','1200','8.0',1.12,1.12,1.15,0.5,0.5,false,'M',1.03],
+  ['重賞','阪神','芝','1200','8.0',1.22,1.02,1.2,0,0.3,false,'S',1.0],
+  ['OP','阪神','ダ','1400','8.0',1.16,1.1,1.15,1.0,1.0,false,null,0],
+  ['OP','阪神','芝','1400','8.0',1.15,1.1,1.18,1.0,0.5,false,null,1.05],
+  ['重賞','阪神','芝','1400','8.0',1.0,1.22,1.1,1.0,0.5,false,'H',1.08],
+  ['重賞','阪神','芝','1400','8.0',1.1,1.15,1.15,0.5,0.5,false,'M',1.05],
+  ['重賞','阪神','芝','1400','8.0',1.2,1.05,1.2,0,0.5,false,'S',1.03],
+  ['OP','阪神','芝','1600','8.0',1.12,1.12,1.18,1.0,0.5,false,null,1.08],
+  ['重賞','阪神','芝','1600','8.0',0.98,1.25,1.1,1.0,0.5,false,'H',1.1],
+  ['重賞','阪神','芝','1600','8.0',1.08,1.18,1.15,0.5,0.5,false,'M',1.08],
+  ['重賞','阪神','芝','1600','8.0',1.18,1.08,1.2,0,0.5,false,'S',1.05],
+  ['OP','阪神','ダ','1800','9.0',1.15,1.1,1.2,0.5,0.5,false,null,1.08],
+  ['重賞','阪神','ダ','1800','9.0',1.0,1.2,1.12,1.0,0.5,false,'H',1.1],
+  ['重賞','阪神','ダ','1800','9.0',1.1,1.12,1.18,0.5,0.5,false,'M',1.08],
+  ['重賞','阪神','ダ','1800','9.0',1.2,1.02,1.22,0,0.3,false,'S',1.05],
+  ['OP','阪神','芝','1800','8.0',1.15,1.08,1.18,1.0,0.5,false,null,1.08],
+  ['重賞','阪神','芝','1800','8.0',1.0,1.22,1.1,0.5,0.5,false,'H',1.1],
+  ['重賞','阪神','芝','1800','8.0',1.1,1.15,1.15,0.3,0.5,false,'M',1.08],
+  ['重賞','阪神','芝','1800','8.0',1.2,1.05,1.2,0,0.5,false,'S',1.05],
+  ['OP','阪神','ダ','2000','9.0',1.12,1.12,1.25,0.5,0.5,false,null,1.15],
+  ['重賞','阪神','ダ','2000','9.0',0.98,1.22,1.15,1.0,0.5,false,'H',1.18],
+  ['重賞','阪神','ダ','2000','9.0',1.08,1.15,1.22,0.5,0.5,false,'M',1.15],
+  ['重賞','阪神','ダ','2000','9.0',1.18,1.05,1.3,0,0.3,false,'S',1.12],
+  ['OP','阪神','芝','2000','8.0',1.15,1.1,1.2,1.0,0.5,false,null,1.1],
+  ['重賞','阪神','芝','2000','8.0',0.98,1.24,1.12,0.5,0.5,false,'H',1.15],
+  ['重賞','阪神','芝','2000','8.0',1.08,1.16,1.18,0.3,0.5,false,'M',1.12],
+  ['重賞','阪神','芝','2000','8.0',1.18,1.05,1.22,0,0.5,false,'S',1.08],
+  ['OP','阪神','芝','2200','8.0',1.12,1.12,1.2,1.0,0.5,false,null,1.1],
+  ['重賞','阪神','芝','2200','8.0',0.98,1.25,1.12,0.5,0.5,false,'H',1.15],
+  ['重賞','阪神','芝','2200','8.0',1.08,1.18,1.18,0.3,0.5,false,'M',1.12],
+  ['重賞','阪神','芝','2200','8.0',1.18,1.08,1.22,0,0.5,false,'S',1.1],
+  ['OP','阪神','芝','2400','8.0',1.1,1.15,1.2,0.5,0.5,false,null,1.15],
+  ['重賞','阪神','芝','2400','8.0',0.95,1.28,1.1,0.5,0.3,false,'H',1.2],
+  ['重賞','阪神','芝','2400','8.0',1.02,1.2,1.15,0.3,0.5,false,'M',1.18],
+  ['重賞','阪神','芝','2400','8.0',1.12,1.1,1.2,0,0.5,false,'S',1.15],
+  ['OP','阪神','芝','3000','8.0',1.15,1.1,1.25,0.3,0.5,false,null,1.18],
+  ['重賞','阪神','芝','3000','8.0',1.0,1.22,1.15,0.3,0.3,false,'H',1.22],
+  ['重賞','阪神','芝','3000','8.0',1.1,1.15,1.22,0.3,0.5,false,'M',1.2],
+  ['重賞','阪神','芝','3000','8.0',1.2,1.05,1.28,0,0.5,false,'S',1.18],
+].forEach(r=>{
+  const [grade,venue,surf,dist,rc,sen,sue,rc3,ue1,ue23,sboSup,pace,sp_max_coef]=r;
+  const key=`${grade}_${venue}_${surf}_${dist}_${pace}`;
+  CM[key]={rc:parseFloat(rc),sen,sue,rc3,ue1:ue1||0,ue23:ue23||0,sboSup,sp_max_coef:sp_max_coef||0};
+});
+
+// ══ STATE: 5 Races ══
+const NUM_RACES=5;
+const N=18;
+let currentRace=0;
+let races=Array.from({length:NUM_RACES},()=>({
+  name:'',surface:'芝',grade:'OP',pace:'',
+  venue:'東京',distance:'1600',
+  chips:[],
+  horses:[], // {n,sp,se,su,ue1,zen,tdy}
+  result:null, // calculated result
+}));
+
+function curR(){ return races[currentRace]; }
+
+// ══ INIT ══
+let surface='芝', grade='OP', pace='';
+function init(){ loadUserCM(); buildHorseRows(); loadRaceUI(); updateRaceTabs(); }
+
+function loadRaceUI(){
+  const r=curR();
+  surface=r.surface; grade=r.grade; pace=r.pace;
+  document.getElementById('race-name').value=r.name;
+  document.getElementById('venue').value=r.venue;
+  document.getElementById('distance').value=r.distance;
+  setSurface(surface,true);
+  setGrade(grade,true);
+  setPace(pace,true);
+  // Load chips
+  const chipsEl=document.getElementById('race-chips');
+  if(r.chips&&r.chips.length){
+    chipsEl.style.display='flex';
+    chipsEl.innerHTML=r.chips.map(c=>`<div class="chip${c.gold?' chip-g':''}">${c.text}</div>`).join('');
+  } else { chipsEl.style.display='none'; }
+  // Load horse data
+  r.horses.forEach(h=>{
+    if(h.n) sv2(`h${h.i}n`,h.n);
+    if(h.sp) sv2(`h${h.i}sp`,h.sp);
+    if(h.se) sv2(`h${h.i}se`,h.se);
+    if(h.su) sv2(`h${h.i}su`,h.su);
+    if(h.sp_max) sv2(`h${h.i}spmax`,h.sp_max);
+    if(h.ue1) sv2(`h${h.i}u1`,h.ue1);
+    if(h.zen) sv2(`h${h.i}zen`,h.zen);
+    if(h.tdy) sv2(`h${h.i}tdy`,h.tdy);
+    updateSBO(h.i);
+    updateHNum(h.i);
+  });
+  updateSpMax();
+  // Load result
+  if(r.result){
+    document.getElementById('result-area').innerHTML=r.result;
+  } else {
+    document.getElementById('result-area').innerHTML='<div style="color:var(--text-dim);text-align:center;padding:32px;font-size:13px">⚡ 計算ボタンを押してください</div>';
+  }
+  onCourseChange();
+}
+
+function saveRaceState(){
+  const r=curR();
+  r.name=document.getElementById('race-name').value;
+  r.venue=document.getElementById('venue').value;
+  r.distance=document.getElementById('distance').value;
+  r.surface=surface; r.grade=grade; r.pace=pace;
+  r.horses=[];
+  for(let i=1;i<=N;i++){
+    const n=sv(`h${i}n`);
+    if(!n&&!fv(`h${i}sp`)) continue;
+    r.horses.push({
+      i,n,sp:fv(`h${i}sp`),se:fv(`h${i}se`),su:fv(`h${i}su`),
+      sp_max:fv(`h${i}spmax`),
+      ue1:fv(`h${i}u1`),zen:fv(`h${i}zen`)||5,tdy:fv(`h${i}tdy`)||5
+    });
+  }
+}
+
+function switchRace(idx){
+  saveRaceState();
+  clearHorseInputs();
+  currentRace=idx;
+  updateRaceTabs();
+  loadRaceUI();
+}
+
+function updateRaceTabs(){
+  for(let i=0;i<NUM_RACES;i++){
+    const tab=document.getElementById(`rtab${i}`);
+    tab.classList.toggle('active',i===currentRace);
+    const r=races[i];
+    const hasData=r.horses.length>0||r.name;
+    tab.classList.toggle('has-data',hasData);
+    tab.textContent=r.name?r.name.substring(0,6):`R${i+1}`;
+  }
+  // 取込パネル内のレースタブも更新
+  const importTabs=document.getElementById('import-race-tabs');
+  if(importTabs){
+    importTabs.innerHTML=Array.from({length:NUM_RACES},(_,i)=>{
+      const r=races[i];
+      const label=r.name?r.name.substring(0,6):`R${i+1}`;
+      const active=i===currentRace?'active':'';
+      return `<div class="race-tab ${active}" onclick="switchRace(${i})" style="border-radius:20px;padding:5px 14px;font-size:11px;cursor:pointer;transition:all .2s">${label}</div>`;
+    }).join('');
+  }
+}
+
+function saveRaceName(){
+  curR().name=document.getElementById('race-name').value;
+  updateRaceTabs();
+}
+
+// ══ HORSE ROWS ══
+function buildHorseRows(){
+  const c=document.getElementById('horse-rows'); c.innerHTML='';
+  for(let i=1;i<=N;i++){
+    const r=document.createElement('div'); r.className='horse-row';
+    r.innerHTML=`
+      <div class="hnum" id="hn${i}">${i}</div>
+      <input class="h-name" type="text" placeholder="馬名" id="h${i}n">
+      <input class="h-val" type="number" placeholder="—" id="h${i}sp" step="0.1" min="0" oninput="updateSBO(${i})">
+      <input class="h-val" type="number" placeholder="—" id="h${i}se" step="0.1" min="0" oninput="updateSBO(${i})">
+      <input class="h-val" type="number" placeholder="—" id="h${i}su" step="0.1" min="0" oninput="updateSBO(${i})">
+      <input type="hidden" id="h${i}spmax">
+      <div class="spmax-cell" id="h${i}spmaxdisp">—</div>
+      <div class="sbo-cell" id="h${i}sbo">—</div>
+      <input class="h-val" type="number" placeholder="—" id="h${i}u1" min="1" max="18">
+      <input class="h-step" type="number" placeholder="5" id="h${i}zen" min="1" max="9" oninput="updateStep(${i},'zen')">
+      <input class="h-step" type="number" placeholder="5" id="h${i}tdy" min="1" max="9" oninput="updateStep(${i},'tdy')">
+    `;
+    c.appendChild(r);
+    document.getElementById(`h${i}n`).addEventListener('input',()=>updateHNum(i));
+    document.getElementById(`h${i}sp`).addEventListener('input',()=>updateHNum(i));
+  }
+}
+
+function clearHorseInputs(){
+  for(let i=1;i<=N;i++){
+    ['n','sp','se','su','u1','zen','tdy'].forEach(f=>{
+      const el=document.getElementById(`h${i}${f}`);
+      if(el){el.value='';el.classList.remove('ai','up','down');}
+    });
+    const hid=document.getElementById(`h${i}spmax`);
+    if(hid) hid.value='';
+    const s=document.getElementById(`h${i}sbo`);
+    if(s) s.textContent='—';
+    const sm=document.getElementById(`h${i}spmaxdisp`);
+    if(sm){sm.textContent='—';sm.classList.remove('top');}
+    document.getElementById(`hn${i}`)?.classList.remove('on');
+  }
+}
+
+function updateSBO(i){
+  const sp=fv(`h${i}sp`), se=fv(`h${i}se`), su=fv(`h${i}su`);
+  const cSP=fv('coef-sp')||1, cSen=fv('coef-sen')||1, cSue=fv('coef-sue')||1.2;
+  const el=document.getElementById(`h${i}sbo`);
+  if(!sp&&!se&&!su){ el.textContent='—'; return; }
+  el.textContent=Math.round(sp*cSP + se*cSen + su*cSue);
+  updateHNum(i);
+  updateSpMax();
+}
+
+function updateSpMax(){
+  let maxVal=0;
+  for(let i=1;i<=N;i++){
+    const v=fv(`h${i}spmax`);
+    if(v>maxVal) maxVal=v;
+  }
+  for(let i=1;i<=N;i++){
+    const el=document.getElementById(`h${i}spmaxdisp`);
+    if(!el) continue;
+    const v=fv(`h${i}spmax`);
+    if(v>0){
+      el.textContent=v;
+      el.classList.toggle('top', v===maxVal);
+    } else {
+      el.textContent='—';
+      el.classList.remove('top');
+    }
+  }
+}
+
+function updateHNum(i){
+  const on=!!(sv(`h${i}n`)||fv(`h${i}sp`));
+  document.getElementById(`hn${i}`).classList.toggle('on',on);
+}
+
+function updateStep(i,f){
+  const id=`h${i}${f}`, v=parseInt(document.getElementById(id).value)||5;
+  const el=document.getElementById(id);
+  el.classList.remove('up','down');
+  if(v>5) el.classList.add('up');
+  else if(v<5) el.classList.add('down');
+}
+
+// ══ SURFACE / GRADE / PACE ══
+function setSurface(s,silent=false){
+  surface=s;
+  document.getElementById('tog-turf').classList.toggle('on',s==='芝');
+  document.getElementById('tog-dirt').classList.toggle('on',s==='ダ');
+  if(!silent) onCourseChange();
+}
+function setGrade(g,silent=false){
+  grade=g;
+  ['OP','重賞','条件'].forEach(v=>{
+    const id={OP:'tog-op',重賞:'tog-grade',条件:'tog-cond'}[v];
+    document.getElementById(id).classList.toggle('on',v===g);
+  });
+  if(!silent) onCourseChange();
+}
+function setPace(p,silent=false){
+  pace=p;
+  ['','H','M','S'].forEach(v=>{
+    const id={''  :'tog-pace-n','H':'tog-pace-h','M':'tog-pace-m','S':'tog-pace-s'}[v];
+    document.getElementById(id).classList.toggle('on',v===p);
+  });
+  if(!silent) onCourseChange();
+}
+
+function getCMKey(){
+  const venue=document.getElementById('venue').value;
+  const dist=document.getElementById('distance').value;
+  const surf=surface==='ダート'?'ダ':surface;
+  return `${grade}_${venue}_${surf}_${dist}_${pace||null}`;
+}
+
+function onCourseChange(){
+  const key=getCMKey(), cm=CM[key];
+  document.getElementById('ck-badge').textContent=key.replace('_null','');
+  const a=document.getElementById('course-info');
+  if(cm){
+    a.innerHTML=`<div class="course-box">
+      <div class="ci-row"><span>先行係数</span><span class="ci-val">${cm.sen}</span></div>
+      <div class="ci-row"><span>末脚係数</span><span class="ci-val">${cm.sue}</span></div>
+      <div class="ci-row"><span>RC③係数</span><span class="ci-val">${cm.rc3}</span></div>
+      <div class="ci-row"><span>RC合計倍率</span><span class="ci-val">${cm.rc}</span></div>
+      <div class="ci-row"><span>上がり補正 1位/2-3位</span><span class="ci-val">${cm.ue1} / ${cm.ue23}</span></div>
+      <div class="ci-row"><span>SBOトップ抑制</span><span class="ci-val">${cm.sboSup?'ON':'OFF'}</span></div>
+      ${cm.sp_max_coef?`<div class="ci-row"><span>SP最大補正係数</span><span class="ci-val">${cm.sp_max_coef}</span></div>`:''}
+    </div>`;
+  } else {
+    // Try without pace
+    const keyNoPace=getCMKey().replace(`_${pace||null}`,'_null');
+    const cm2=CM[keyNoPace];
+    if(cm2){
+      a.innerHTML=`<div class="course-box">
+        <div class="ci-row"><span>先行係数</span><span class="ci-val">${cm2.sen}</span></div>
+        <div class="ci-row"><span>末脚係数</span><span class="ci-val">${cm2.sue}</span></div>
+        <div class="ci-row"><span>RC③係数</span><span class="ci-val">${cm2.rc3}</span></div>
+        <div class="ci-row"><span>RC合計倍率</span><span class="ci-val">${cm2.rc}</span></div>
+        <div class="ci-row"><span>上がり補正 1位/2-3位</span><span class="ci-val">${cm2.ue1} / ${cm2.ue23}</span></div>
+      </div>`;
+    } else {
+      a.innerHTML=`<div class="course-box" style="border-color:var(--red);color:var(--red)">⚠️ コースデータなし（設定タブで確認）</div>`;
+    }
+  }
+  for(let i=1;i<=N;i++) updateSBO(i);
+}
+
+// ══ JSON LOAD ══
+function clearJsonArea(){
+  document.getElementById('json-paste').value='';
+  document.getElementById('load-btn').disabled=true;
+  const st=document.getElementById('import-status');
+  st.className='status';
+}
+function onJsonPaste(){
+  document.getElementById('load-btn').disabled=document.getElementById('json-paste').value.trim().length<10;
+}
+
+function loadJson(){
+  const raw=document.getElementById('json-paste').value.trim();
+  try{
+    const match=raw.match(/```json\s*([\s\S]*?)```/)||raw.match(/(\{[\s\S]*\})/);
+    const parsed=JSON.parse(match?(match[1]||match[0]):raw);
+    if(!parsed.horses?.length) throw new Error('馬データが見つかりません');
+    applyData(parsed);
+    const st=document.getElementById('import-status');
+    st.className='status show s-done';
+    st.textContent=`✅ ${parsed.horses.length}頭をR${currentRace+1}に取込みました！`;
+    showToast(`R${currentRace+1}に${parsed.horses.length}頭 取込完了！`);
+    setTimeout(()=>switchTab('input'),800);
+  }catch(e){
+    const st=document.getElementById('import-status');
+    st.className='status show s-error';
+    st.textContent=`❌ 読込失敗: ${e.message}`;
+  }
+}
+
+function applyData(parsed){
+  clearHorseInputs();
+  const ri=parsed.race_info||{};
+  if(ri.venue){const s=document.getElementById('venue');for(let o of s.options){if(o.value===ri.venue){s.value=ri.venue;break;}}}
+  if(ri.surface) setSurface(ri.surface==='ダ'||ri.surface==='ダート'?'ダ':'芝');
+  if(ri.distance){const s=document.getElementById('distance');for(let o of s.options){if(o.value==ri.distance){s.value=ri.distance;break;}}}
+  if(ri.grade) setGrade(ri.grade==='GI'||ri.grade==='GII'||ri.grade==='GIII'?'重賞':'OP');
+  onCourseChange();
+
+  // Chips
+  const chips=[];
+  if(ri.race_name) chips.push({text:`🏆 ${ri.race_name}${ri.grade?` (${ri.grade})`:''}`  ,gold:['GI','GII','GIII'].includes(ri.grade)});
+  if(ri.venue) chips.push({text:`📍 ${ri.venue}`});
+  if(ri.surface) chips.push({text:ri.surface==='ダ'?'🟤 ダート':'🟢 芝'});
+  if(ri.distance) chips.push({text:`📏 ${ri.distance}m`});
+  curR().chips=chips;
+  const chipsEl=document.getElementById('race-chips');
+  chipsEl.style.display='flex';
+  chipsEl.innerHTML=chips.map(c=>`<div class="chip${c.gold?' chip-g':''}">${c.text}</div>`).join('');
+
+  // Set race name from race_info if empty
+  if(!curR().name&&ri.race_name){
+    curR().name=ri.race_name.substring(0,10);
+    document.getElementById('race-name').value=curR().name;
+    updateRaceTabs();
+  }
+
+  (parsed.horses||[]).forEach(h=>{
+    const i=h.num; if(!i||i<1||i>N) return;
+    const setV=(f,v)=>{const el=document.getElementById(`h${i}${f}`);if(el&&v!=null){el.value=v;el.classList.add('ai');}};
+    setV('n',h.name); setV('sp',h.sp); setV('se',h.senkou); setV('su',h.suikyaku); setV('u1',h.agari_rank);
+    setV('spmax',h.sp_max);
+    updateSBO(i); updateHNum(i);
+  });
+  updateSpMax();
+}
+
+// ══ CALCULATE ══
+function calculate(){
+  saveRaceState();
+  const key=getCMKey();
+  let cm=CM[key];
+  if(!cm){
+    // Try without pace
+    const keyNoPace=`${grade}_${document.getElementById('venue').value}_${surface}_${document.getElementById('distance').value}_null`;
+    cm=CM[keyNoPace];
+  }
+
+  const cSP=fv('coef-sp')||1, cSen=fv('coef-sen')||1, cSue=fv('coef-sue')||1.2;
+  const cZen=fv('coef-zen')||0.45, cToday=fv('coef-today')||0.65;
+  const rcMul=cm?cm.rc:fv('coef-rc-mul')||7;
+  const senCoef=cm?cm.sen:1, sueCoef=cm?cm.sue:1, rc3Coef=cm?cm.rc3:1;
+  const ue1B=cm?cm.ue1:fv('ue1-bonus'), ue23B=cm?cm.ue23:fv('ue23-bonus');
+  const sboSupOn=fv('sbo-sup-on'), sboSupCoef=fv('sbo-sup-coef')||0.97;
+  const rescueS=fv('rescue-s')||6, rescueE=fv('rescue-e')||8, rescueB=fv('rescue-b');
+
+  // RC threshold values
+  const rc01th=fv('rc01-th')||95; // 先行≥
+  const rc02th=fv('rc02-th')||95; // 末脚≥
+  const rc03th=fv('rc03-th')||88; // 先行≥
+  const rc04spth=fv('rc04-sp-th')||88; // SP≥ かつ 先行≥50
+  const rc05th=fv('rc05-th')||90; // SP≥90 or 先行≥56
+  const rc07spth=fv('rc07-sp-th')||88; // SP≥ かつ 先行≥52
+
+  let horses=[];
+  for(let i=1;i<=N;i++){
+    const name=sv(`h${i}n`), sp=fv(`h${i}sp`);
+    if(!name&&!sp) continue;
+    const se=fv(`h${i}se`), su=fv(`h${i}su`);
+    const sbo=Math.round(sp*cSP + se*cSen + su*cSue);
+    const senAdj=Math.round(se*senCoef), sueAdj=Math.round(su*sueCoef);
+    const zenVal=parseInt(document.getElementById(`h${i}zen`).value)||5;
+    const tdyVal=parseInt(document.getElementById(`h${i}tdy`).value)||5;
+    horses.push({
+      num:i, name:name||`馬${i}`, sp, se, su, sbo,
+      sp_max:fv(`h${i}spmax`),
+      senAdj, sueAdj,
+      ue1:fv(`h${i}u1`),
+      zenAdj:(zenVal-5)*cZen,
+      tdyAdj:(tdyVal-5)*cToday,
+    });
+  }
+  if(!horses.length){showToast('馬データを入力してください');return;}
+
+  const maxSBO=Math.max(...horses.map(h=>h.sbo));
+
+  horses.forEach(h=>{
+    // SBO抑制
+    const sboEff=(sboSupOn===1&&h.sbo===maxSBO)?h.sbo*sboSupCoef:h.sbo;
+
+    // RC01〜08フラグ（入力シートの数式より）
+    const senR=Math.round(h.se);
+    const sueR=Math.round(h.su);
+    const spR=Math.round(h.sp);
+    // RC01: 先行≥th
+    const rc01=senR>=rc01th?1:0;
+    // RC02: 末脚≥th
+    const rc02=sueR>=rc02th?1:0;
+    // K2=IF($A2="","",...RC③フラグ（L2）: SP≥88かつ先行≥50）
+    const rc03_lFlag=(spR>=88&&senR>=50)?1:0;
+    // RC04: コース（常に1, E18=1）→ コースマスターあれば1
+    const rc04_course=cm?1:0;
+    // RC05: コース（場名）→ 常に1 E18=1
+    const rc05_venue=1;
+    // RC06: SP≥90 or 先行≥56
+    const rc05_flag=(spR>=rc05th||senR>=56)?1:0;
+    // RC07: SP≥88かつ先行≥52
+    const rc06_flag=(spR>=rc07spth&&senR>=52)?1:0;
+
+    // Q列: RC合計 = RC01×1 + RC02×1 + rc03_l×1.2 + rc04×1.3 + rc05_venue×1 + rc05_flag×1 + rc06_flag×1
+    h.rcTotal=rc01*1 + rc02*1 + rc03_lFlag*1.2 + rc04_course*1.3 + rc05_venue*1 + rc05_flag*1 + rc06_flag*1;
+
+    // 前走上がり補正（Y列=agari_rank）
+    let ueBonus=0;
+    if(ue1B>0&&h.ue1===1) ueBonus=ue1B;
+    else if(ue23B>0&&h.ue1>=2&&h.ue1<=3) ueBonus=ue23B;
+
+    // R列: スコア = SBO(抑制後) + 前日補正 + 当日補正 + RC合計×RC倍率
+    h.score = sboEff + h.zenAdj + h.tdyAdj + h.rcTotal*rcMul;
+
+    // 救済フラグK（RC③ or RC04フラグ＝rc03_lFlagまたはrc04_course）
+    h.rescueTrigger=(rc03_lFlag===1||rc04_course===1);
+
+    // U列: 最終スコア = (R列 + 救済ボーナス + 上がり補正) × (1 + RC合計×0.01)
+    h.rawFinal=(h.score+ueBonus)*(1+h.rcTotal*0.01);
+    h.ueBonus=ueBonus;
+  });
+
+  // 仮順位 (S列)
+  horses.sort((a,b)=>b.score-a.score);
+  horses.forEach((h,i)=>h.rank=i+1);
+
+  // 救済 (T/U列)
+  horses.forEach(h=>{
+    let final=h.rawFinal;
+    let rescued=false;
+    if(h.rescueTrigger&&h.rank>=rescueS&&h.rank<=rescueE&&rescueB>0){
+      final=(h.score+rescueB+h.ueBonus)*(1+h.rcTotal*0.01);
+      rescued=true;
+    }
+    h.final=final; h.rescued=rescued;
+  });
+
+  // V列: 最終順位
+  horses.sort((a,b)=>b.final-a.final);
+  horses.forEach((h,i)=>h.finalRank=i+1);
+
+  // 印 (W列)
+  const marks=['◎','○','▲','△','△'];
+  const mCls=['mk0','mk1','mk2','mk3','mk3'];
+  const maxS=horses[0].final;
+  const maxSpMax=Math.max(...horses.map(h=>h.sp_max||0));
+
+  const resultHTML=`
+    <div style="font-size:10px;color:var(--text-dim);padding:4px 0 10px;border-bottom:1px solid var(--border);margin-bottom:6px;font-family:'JetBrains Mono',monospace">
+      ${key.replace('_null','')} | ${new Date().toLocaleTimeString('ja-JP')}
+    </div>
+    <div style="display:grid;grid-template-columns:22px 1fr 60px 48px 36px;gap:4px;padding:0 3px 6px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <div></div>
+      <div style="font-size:9px;color:var(--text-dim)">馬名</div>
+      <div style="font-size:9px;color:var(--text-dim);text-align:right">最終スコア</div>
+      <div style="font-size:9px;color:var(--text-dim);text-align:right">SBO/RC</div>
+      <div style="font-size:9px;color:var(--text-dim);text-align:center">印</div>
+    </div>
+    ${horses.map(h=>{
+      const mi=h.finalRank-1;
+      const mark=mi<marks.length?marks[mi]:'';
+      const mc=mi<mCls.length?mCls[mi]:'';
+      const smColor=h.sp_max&&h.sp_max===maxSpMax?'color:var(--orange);font-weight:700':'color:var(--text-dim)';
+      const smText=h.sp_max?`<span style="${smColor}">SPmax:${h.sp_max}</span> `:'';
+      return `<div class="res-row">
+        <div class="rbadge ${h.finalRank<=3?'r'+h.finalRank:'rn'}">${h.finalRank}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700">${h.num}. ${h.name}${h.rescued?'<span class="rescue-tag">救済</span>':''}</div>
+          <div class="res-sub">${smText}SBO:${h.sbo} RC:${h.rcTotal.toFixed(1)} ${h.ueBonus?`上がり:+${h.ueBonus}`:''} 前日:${h.zenAdj>=0?'+':''}${h.zenAdj.toFixed(1)} 当日:${h.tdyAdj>=0?'+':''}${h.tdyAdj.toFixed(1)}</div>
+          <div class="sbar"><div class="sfill" style="width:${(h.final/maxS*100).toFixed(1)}%"></div></div>
+        </div>
+        <div class="sval ${h.finalRank===1?'top':''}">${h.final.toFixed(1)}</div>
+        <div style="font-size:10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--gold)">${h.sbo}<br><span style="color:var(--accent);font-size:9px">${h.rcTotal.toFixed(1)}</span></div>
+        <div class="mark ${mc}">${mark}</div>
+      </div>`;
+    }).join('')}
+  `;
+
+  document.getElementById('result-area').innerHTML=resultHTML;
+  curR().result=resultHTML;
+  curR().calcData=horses; // 計算データ保存（PDF用）
+  curR().calcKey=key;
+
+  // WIN5更新
+  updateWin5();
+  updateRaceTabs();
+  switchTab('result');
+  showToast('計算完了！');
+}
+
+function clearHorses(){
+  clearHorseInputs();
+  curR().chips=[];
+  curR().horses=[];
+  curR().result=null;
+  curR().calcData=null;
+  document.getElementById('race-chips').style.display='none';
+  document.getElementById('result-area').innerHTML='<div style="color:var(--text-dim);text-align:center;padding:32px;font-size:13px">⚡ 計算ボタンを押してください</div>';
+  updateRaceTabs();
+  showToast('クリアしました');
+}
+
+// ══ WIN5 ══
+function updateWin5(){
+  const area=document.getElementById('win5-area');
+  const marks=['◎','○','▲','△','△'];
+  let html='';
+  let anyData=false;
+  for(let i=0;i<NUM_RACES;i++){
+    const r=races[i];
+    if(!r.calcData) continue;
+    anyData=true;
+    const top3=r.calcData.slice(0,3);
+    html+=`<div class="win5-row">
+      <div class="win5-race">${r.name||`R${i+1}`}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;flex:1">
+        ${top3.map((h,mi)=>`
+          <div style="display:flex;align-items:center;gap:4px">
+            <span class="mark ${['mk0','mk1','mk2'][mi]}" style="font-size:14px">${marks[mi]}</span>
+            <span style="font-size:12px;font-weight:700">${h.num}. ${h.name}</span>
+            <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace">${h.final.toFixed(1)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+  area.innerHTML=anyData?html:'<div style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">各レースを計算すると表示されます</div>';
+}
+
+// ══ CSV EXPORT ══
+function exportCSV(){
+  const allRows=[];
+  let hasData=false;
+  for(let ri=0;ri<NUM_RACES;ri++){
+    const r=races[ri];
+    const horses=r.calcData;
+    if(!horses||!horses.length) continue;
+    hasData=true;
+    const raceLabel=`R${ri+1}`;
+    // 指数比較データを取得（貼付け欄から）
+    const cmpD=typeof _getCmpMaps==='function'?_getCmpMaps(horses):{v7r:{},fr:{},ur:{},jr:{},er:{},crm:{}};
+    horses.forEach(h=>{
+      const marks=['◎','○','▲','△','△'];
+      allRows.push({
+        レース: raceLabel,
+        場: r.venue||'',
+        芝ダ: r.surface||'',
+        距離: r.distance||'',
+        格: r.grade||'',
+        ペース: r.pace||'',
+        順位: h.finalRank,
+        馬番: h.num,
+        馬名: h.name,
+        最終スコア: h.final!=null?h.final.toFixed(1):'',
+        SBO: h.sbo||'',
+        SP最大: h.sp_max||'',
+        RC合計: h.rcTotal!=null?h.rcTotal.toFixed(2):'',
+        SP: h.sp||'',
+        先行: h.se||'',
+        末脚: h.su||'',
+        上がり順位: h.ue1||'',
+        上がり補正: h.ueBonus||0,
+        前日補正: h.zenAdj!=null?h.zenAdj.toFixed(1):'',
+        当日補正: h.tdyAdj!=null?h.tdyAdj.toFixed(1):'',
+        印: (()=>{const i=h.finalRank-1;return i<marks.length?marks[i]:'';})(),
+        合成順位: cmpD.crm[h.num]||'',
+        v7順位: cmpD.v7r[h.num]||'',
+        福馬順位: cmpD.fr[h.num]||'',
+        U指数順位: cmpD.ur[h.num]||'',
+        JBIS順位: cmpD.jr[h.num]||'',
+        その他順位: cmpD.er[h.num]||'',
+      });
+    });
+  }
+  if(!hasData){showToast('計算済みデータがありません');return;}
+  const headers=Object.keys(allRows[0]);
+  const csvLines=[
+    '\uFEFF'+headers.join(','),
+    ...allRows.map(row=>headers.map(h=>{
+      const v=String(row[h]??'');
+      return v.includes(',')||v.includes('\n')||v.includes('"')
+        ?'"'+v.replace(/"/g,'""')+'"':v;
+    }).join(','))
+  ];
+  const blob=new Blob([csvLines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  a.href=url; a.download=`JRA予想_${dateStr}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSVをダウンロードしました');
+}
+
+function switchTab(name){
+  const names=['import','input','result','compare','tenkai','win5','courses','config'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',names[i]===name));
+  if(name==='courses') renderCMTable();
+  if(name==='tenkai') initTenkai();
+  if(name==='compare') buildCompareTable();
+}
+
+// ══ 指数比較パーサー ══
+function _parseFuku(text){
+  const res={};if(!text||!text.trim())return res;
+  text.split(/(?=\d+枠\d+番)/).forEach(block=>{
+    const fm=block.match(/\d+枠(\d+)番/),am=block.match(/加重平均[:：](\d+(?:\.\d+)?)/);
+    let name='';
+    const ls=block.split('\n').map(l=>l.trim()).filter(Boolean);
+    for(let i=0;i<ls.length;i++){
+      if(ls[i].match(/\d+枠\d+番/)){
+        for(let j=i+1;j<ls.length;j++){const x=ls[j];if(!x.match(/^\d/)&&!x.match(/加重平均/)&&x.length>1&&x.length<20){name=x.replace(/\s+/g,'');break;}}
+        break;
+      }
+    }
+    if(fm&&am&&name)res[parseInt(fm[1])]={score:parseFloat(am[1])};
+  });
+  return res;
+}
+function _parseUma(text){
+  const res={};if(!text||!text.trim())return res;
+  const lines=text.split('\n');
+  for(let i=0;i<lines.length;i++){
+    const c=lines[i].split('\t').map(x=>x.trim());
+    const w=parseInt(c[0]),u=parseInt(c[1]);
+    if(isNaN(w)||w<1||w>8||isNaN(u)||u<1||u>18||!c[0]||!c[1])continue;
+    let sc=null;
+    for(let j=i+1;j<Math.min(i+8,lines.length);j++){
+      const jc=lines[j].split('\t').map(x=>x.trim());
+      const m=jc[0].match(/^(\d{2,3}\.\d)$/);if(m){sc=parseFloat(m[1]);break;}
+    }
+    if(sc)res[u]={score:sc};
+  }
+  return res;
+}
+function _parseJbis(text){
+  const res={};if(!text||!text.trim())return res;
+  const lines=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  for(let i=0;i<lines.length;i++){
+    const m=lines[i].match(/^(\d{1,2})番$/);if(!m)continue;
+    const u=parseInt(m[1]);let sc=null;
+    for(let j=i+1;j<Math.min(i+20,lines.length);j++){
+      const sm=lines[j].match(/^((?:9\d|1[0-2]\d)\.\d)$/);if(sm){sc=parseFloat(sm[1]);break;}
+    }
+    if(sc)res[u]={score:sc};
+  }
+  return res;
+}
+function _parseExt(text){
+  const res={};if(!text||!text.trim())return res;
+  const ls=text.split('\n').map(l=>l.trim()).filter(Boolean);
+  ls.forEach((line,i)=>{
+    const cols=line.split(/[\t\s]+/),u=parseInt(cols[0]);
+    if(isNaN(u)||u<1||u>18)return;
+    let sc=null;
+    for(let c=1;c<cols.length;c++){const m=cols[c].match(/^(\d{2,3}(?:\.\d+)?)$/);if(m){sc=parseFloat(m[1]);break;}}
+    if(sc===null&&i+1<ls.length){ls[i+1].split(/[\t\s]+/).forEach(x=>{if(sc===null){const m=x.match(/^(\d{2,3}(?:\.\d+)?)$/);if(m)sc=parseFloat(m[1]);}});}
+    if(sc!=null)res[u]={score:sc};
+  });
+  return res;
+}
+function _ranks(map){
+  const r={};
+  Object.entries(map).filter(([,v])=>v!=null&&!isNaN(v)).sort((a,b)=>b[1]-a[1]).forEach(([k,],i)=>r[parseInt(k)]=i+1);
+  return r;
+}
+function _getCmpMaps(horses){
+  const fuku=_parseFuku(document.getElementById('cmp-fuku')?.value||'');
+  const uma=_parseUma(document.getElementById('cmp-uma')?.value||'');
+  const jbis=_parseJbis(document.getElementById('cmp-jbis')?.value||'');
+  const ext=_parseExt(document.getElementById('cmp-ext')?.value||'');
+  const v7m={},fm={},um={},jm={},em={};
+  horses.forEach(h=>{
+    v7m[h.num]=h.final;
+    if(fuku[h.num])fm[h.num]=fuku[h.num].score;
+    if(uma[h.num])um[h.num]=uma[h.num].score;
+    if(jbis[h.num])jm[h.num]=jbis[h.num].score;
+    if(ext[h.num])em[h.num]=ext[h.num].score;
+  });
+  const hasExt=Object.keys(em).length>0;
+  const v7r=_ranks(v7m),fr=_ranks(fm),ur=_ranks(um),jr=_ranks(jm),er=_ranks(em);
+  function comp(num){
+    const rs=[v7r,fr,ur,jr,...(hasExt?[er]:[])].map(r=>r[num]).filter(Boolean);
+    return rs.length?rs.reduce((a,b)=>a+b)/rs.length:999;
+  }
+  const cArr=horses.map(h=>({n:h.num,c:comp(h.num)})).sort((a,b)=>a.c-b.c);
+  const crm={};cArr.forEach((x,i)=>crm[x.n]=i+1);
+  return {v7m,fm,um,jm,em,v7r,fr,ur,jr,er,crm,hasExt,
+    counts:{f:Object.keys(fm).length,u:Object.keys(um).length,j:Object.keys(jm).length,e:Object.keys(em).length}};
+}
+
+// ── 指数比較タブ ──
+function clearAllCmp(){
+  ['cmp-fuku','cmp-uma','cmp-jbis','cmp-ext'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('cmp-thead').innerHTML='';
+  document.getElementById('cmp-tbody').innerHTML='';
+  const log=document.getElementById('cmp-log');if(log)log.style.display='none';
+  showToast('指数データをクリアしました');
+}
+function buildCompareTable(){
+  const r=curR(),horses=r.calcData;
+  const log=document.getElementById('cmp-log');
+  if(!horses||!horses.length){
+    if(log){log.style.display='block';log.innerHTML='⚠️ 先にレースを計算してください';}
+    document.getElementById('cmp-thead').innerHTML='';document.getElementById('cmp-tbody').innerHTML='';return;
+  }
+  const d=_getCmpMaps(horses);
+  const {v7m,fm,um,jm,em,v7r,fr,ur,jr,er,crm,hasExt,counts}=d;
+  if(log){
+    log.style.display='block';
+    const extPart=hasExt?` / その他 <b style="color:#ffab91">${counts.e}頭</b>`:'';
+    log.innerHTML=`解析: 温故知福馬 <b style="color:#4dd0e1">${counts.f}頭</b> / U指数 <b style="color:#ce93d8">${counts.u}頭</b> / JBIS <b style="color:#a5d6a7">${counts.j}頭</b>`+extPart;
+  }
+  const marks=['◎','○','▲','△','△'],mCls=['mk0','mk1','mk2','mk3','mk3'];
+  function rc(rank,score){
+    if(score==null)return`<td style="text-align:center;color:var(--border)">—</td>`;
+    const s=rank===1?'background:var(--gold);color:#000;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:10px'
+             :rank===2?'background:#bdbdbd;color:#000;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:10px'
+             :rank===3?'background:#a1714a;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:10px'
+             :'color:var(--text-dim);font-size:10px';
+    return`<td style="text-align:center;padding:4px 3px"><span style="${s}">${rank}</span><span style="display:block;font-size:8px;color:var(--text-dim)">${score}</span></td>`;
+  }
+  const th='padding:5px 4px;border-bottom:2px solid var(--border);font-size:9px;text-align:center;white-space:nowrap;font-weight:700;background:var(--surface2)';
+  document.getElementById('cmp-thead').innerHTML=`<tr>
+    <th style="${th}">順</th><th style="${th};text-align:left">馬名</th><th style="${th}">印</th>
+    <th style="${th};color:var(--accent)">合成</th><th style="${th};color:var(--accent)">v7</th>
+    <th style="${th};color:#4dd0e1">福馬</th><th style="${th};color:#ce93d8">U指数</th>
+    <th style="${th};color:#a5d6a7">JBIS</th>${hasExt?`<th style="${th};color:#ffab91">その他</th>`:''}
+  </tr>`;
+  document.getElementById('cmp-tbody').innerHTML=horses.map(h=>{
+    const mi=h.finalRank-1,mark=mi<marks.length?marks[mi]:'',mc=mi<mCls.length?mCls[mi]:'';
+    const cr=crm[h.num];
+    const crS=cr===1?'color:var(--gold);font-weight:900':cr===2?'color:#bdbdbd;font-weight:700':cr===3?'color:#a1714a;font-weight:700':'color:var(--text-dim)';
+    return`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 4px;text-align:center;font-weight:700;font-family:'JetBrains Mono',monospace">${h.finalRank}</td>
+      <td style="padding:5px 6px;font-size:12px;font-weight:700;white-space:nowrap">${h.num}. ${h.name}</td>
+      <td style="padding:5px 4px;text-align:center"><span class="mark ${mc}" style="font-size:14px">${mark}</span></td>
+      <td style="padding:5px 4px;text-align:center"><span style="${crS}">${cr}位</span></td>
+      ${rc(v7r[h.num],h.final!=null?h.final.toFixed(1):null)}
+      ${rc(fr[h.num],fm[h.num]!=null?fm[h.num]:null)}
+      ${rc(ur[h.num],um[h.num]!=null?um[h.num]:null)}
+      ${rc(jr[h.num],jm[h.num]!=null?jm[h.num]:null)}
+      ${hasExt?rc(er[h.num],em[h.num]!=null?em[h.num]:null):''}
+    </tr>`;
+  }).join('');
+}
+
+// ── PDF ──
+function showPdfModal(){
+  saveRaceState();
+  const marks=['◎','○','▲','△','△'];
+  let html='',hasAny=false;
+  for(let i=0;i<NUM_RACES;i++){
+    const r=races[i];if(!r.calcData||!r.calcData.length)continue;
+    hasAny=true;
+    const horses=r.calcData,raceName=r.name||`レース${i+1}`,key=(r.calcKey||'').replace('_null','');
+    const maxSP=Math.max(...horses.map(h=>h.sp_max||0));
+    const d=_getCmpMaps(horses);
+    const {v7m,fm,um,jm,em,v7r,fr,ur,jr,er,crm,hasExt}=d;
+    function rk(rm,sm,num){return sm[num]==null?'—':`${rm[num]||'—'}`;}
+    const cmpCols=5+(hasExt?1:0);
+    const body=horses.map(h=>{
+      const mi=h.finalRank-1,mark=mi<marks.length?marks[mi]:'';
+      const spB=h.sp_max&&h.sp_max===maxSP?'font-weight:bold':'';
+      return`<tr>
+        <td>${h.finalRank}</td><td style="font-weight:900">${mark}</td>
+        <td class="pname">${h.num}. ${h.name}${h.rescued?' [救]':''}</td>
+        <td>${h.final.toFixed(1)}</td><td>${h.sbo}</td>
+        <td style="${spB}">${h.sp_max||'—'}</td>
+        <td class="lsep">${h.rcTotal.toFixed(1)}</td>
+        <td style="font-weight:700">${crm[h.num]}位</td>
+        <td>${rk(v7r,v7m,h.num)}</td><td>${rk(fr,fm,h.num)}</td>
+        <td>${rk(ur,um,h.num)}</td><td>${rk(jr,jm,h.num)}</td>
+        ${hasExt?`<td>${rk(er,em,h.num)}</td>`:''}
+      </tr>`;
+    }).join('');
+    html+=`<div class="pdf-page">
+      <div class="pdf-race-header">${raceName}　${key}</div>
+      <table class="pdf-tbl">
+        <thead>
+          <tr>
+            <th colspan="7" style="background:#ddeeff;text-align:center;border-right:3px solid #999">【 予想表 】</th>
+            <th colspan="${cmpCols}" style="background:#eef5ee;text-align:center">【 指数比較 】</th>
+          </tr>
+          <tr>
+            <th>順</th><th>印</th><th style="text-align:left">馬名</th>
+            <th>スコア</th><th>SBO</th><th>SP最大</th><th class="lsep">RC</th>
+            <th>合成</th><th>v7</th><th>福馬</th><th>U指数</th><th>JBIS</th>
+            ${hasExt?'<th>その他</th>':''}
+          </tr>
+        </thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+  }
+  if(!hasAny){showToast('計算済みのレースがありません');return;}
+  document.getElementById('pdf-content-area').innerHTML=html;
+  document.getElementById('pdf-modal').classList.add('show');
+}
+function closePdfModal(){document.getElementById('pdf-modal').classList.remove('show');}
+function printPdf(){window.print();}
+
+// ── CSV リストア ──
+function onCsvPaste(){
+  document.getElementById('csv-load-btn').disabled=
+    document.getElementById('csv-restore').value.trim().length<10;
+}
+function clearCsvArea(){
+  document.getElementById('csv-restore').value='';
+  document.getElementById('csv-load-btn').disabled=true;
+  document.getElementById('csv-status').className='status';
+}
+function _parseCsvLine(line){
+  const res=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQ){if(c==='"'&&line[i+1]==='"'){cur+='"';i++;}else if(c==='"')inQ=false;else cur+=c;}
+    else{if(c==='"')inQ=true;else if(c===','){res.push(cur);cur='';}else cur+=c;}
+  }
+  res.push(cur);return res;
+}
+function loadCsv(){
+  const raw=document.getElementById('csv-restore').value;
+  const st=document.getElementById('csv-status');
+  try{
+    // BOM・改行正規化・制御文字除去
+    const clean=raw
+      .replace(/^\uFEFF/,'')
+      .replace(/\r\n/g,'\n')
+      .replace(/\r/g,'\n')
+      .replace(/[^\S\n]/g,' '); // タブ等をスペースに（改行は保持）
+    const allLines=clean.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    
+    // R1〜R5で始まる行を全て抽出（ヘッダー・空行スキップ）
+    const dataLines=allLines.filter(l=>/^R[1-5][,\s]/.test(l));
+    
+    if(!dataLines.length){
+      // デバッグ: 最初の3行を表示
+      const preview=allLines.slice(0,3).map(l=>l.substring(0,50)).join(' | ');
+      throw new Error(`R1〜R5の行が見つかりません。先頭行: ${preview}`);
+    }
+
+    // レースごとにグループ化
+    const groups={};
+    dataLines.forEach(line=>{
+      const cols=_parseCsvLine(line);
+      if(cols.length<9)return;
+      const label=cols[0].trim().toUpperCase();
+      if(!label.match(/^R[1-5]$/))return;
+      if(!groups[label])groups[label]=[];
+      groups[label].push(cols);
+    });
+
+    const labels=Object.keys(groups);
+    if(!labels.length)throw new Error('グループ化できませんでした');
+
+    let restored=0;
+    labels.forEach(label=>{
+      const idx=parseInt(label.replace('R',''))-1;
+      if(isNaN(idx)||idx<0||idx>=NUM_RACES)return;
+      const rows=groups[label];if(!rows.length)return;
+      const r=races[idx];
+      const first=rows[0];
+      // CSV列: 0=レース,1=場,2=芝ダ,3=距離,4=格,5=ペース,6=順位,7=馬番,8=馬名,
+      //        9=最終スコア,10=SBO,11=SP最大,12=RC合計,13=SP,14=先行,15=末脚,
+      //        16=上がり順位,17=上がり補正,18=前日補正,19=当日補正,20=印
+      r.venue=first[1]||r.venue;
+      r.surface=first[2]||r.surface;
+      r.distance=first[3]||r.distance;
+      r.grade=first[4]||r.grade;
+      r.pace=first[5]||r.pace;
+      if(!r.name)r.name=`${first[1]} ${first[2]}${first[3]}`;
+      r.horses=[];r.chips=[];r.result=null;r.calcData=null;
+
+      const cZen=parseFloat(document.getElementById('coef-zen')?.value)||0.45;
+      const cTdy=parseFloat(document.getElementById('coef-today')?.value)||0.65;
+
+      rows.forEach(cols=>{
+        const umaban=parseInt(cols[7]);
+        if(isNaN(umaban)||umaban<1||umaban>N)return;
+        const sp=parseFloat(cols[13])||0;
+        const se=parseFloat(cols[14])||0;
+        const su=parseFloat(cols[15])||0;
+        const spmax=parseFloat(cols[11])||0;
+        const ue1=parseFloat(cols[16])||0;
+        const zenAdj=parseFloat(cols[18])||0;
+        const tdyAdj=parseFloat(cols[19])||0;
+        const zenVal=cZen?Math.round(5+zenAdj/cZen):5;
+        const tdyVal=cTdy?Math.round(5+tdyAdj/cTdy):5;
+        r.horses.push({
+          i:umaban,n:cols[8]||'',sp,se,su,sp_max:spmax,ue1,
+          zen:Math.max(1,Math.min(9,zenVal)),
+          tdy:Math.max(1,Math.min(9,tdyVal)),
+        });
+      });
+      restored++;
+    });
+
+    if(!restored)throw new Error('復元できるレースがありませんでした');
+    loadRaceUI();updateRaceTabs();
+    st.className='status show s-done';
+    st.innerHTML=`✅ ${restored}レース分（${labels.join('・')}）を復元しました。各レースで「⚡ 計算」を押してください。`;
+    showToast(`${restored}レース分を復元しました`);
+  }catch(e){
+    st.className='status show s-error';
+    st.textContent=`❌ 読込失敗: ${e.message}`;
+  }
+}
+
+// ══ TENKAI（展開予想） ══
+let tkPace='M';
+let tkHorseData={};
+
+function setTkPace(p){
+  tkPace=p;
+  ['H','M','S'].forEach(v=>{
+    document.getElementById(`tk-pace-${v.toLowerCase()}`)?.classList.toggle('on',v===p);
+  });
+  renderTkSheet(curR().horses);
+}
+
+function estimatePos(senkou, maxSen){
+  const ratio=maxSen>0?senkou/maxSen:0;
+  if(ratio>=0.92) return 'nige';
+  if(ratio>=0.78) return 'senkou';
+  if(ratio>=0.55) return 'chutan';
+  return 'koho';
+}
+const POS_LABEL={nige:'逃げ',senkou:'先行',chutan:'中団',koho:'後方'};
+const RANK_LIST=['S','A','B','C',''];
+
+function initTenkai(){
+  saveRaceState();
+  const r=curR();
+  if(!r.horses.length){
+    document.getElementById('tk-horse-list').innerHTML='<div style="color:var(--text-dim);text-align:center;padding:20px;font-size:12px">② 入力タブでデータを入力してください</div>';
+    document.getElementById('tk-sheet').innerHTML='';
+    return;
+  }
+  const maxSen=Math.max(...r.horses.map(h=>h.se||0));
+  r.horses.forEach(h=>{
+    if(!tkHorseData[h.i]){
+      tkHorseData[h.i]={pos:estimatePos(h.se||0,maxSen),rank:'',comment:''};
+    }
+  });
+  renderTkHorseList(r.horses);
+  renderTkSheet(r.horses);
+}
+
+function renderTkHorseList(horses){
+  const c=document.getElementById('tk-horse-list');
+  c.innerHTML=`
+    <div style="display:grid;grid-template-columns:22px 28px 1fr 72px 48px 1fr;gap:6px;padding:0 2px 6px;border-bottom:1px solid var(--border);margin-bottom:2px">
+      <div style="font-size:9px;color:var(--text-dim)">番</div>
+      <div style="font-size:9px;color:var(--text-dim)">展開利</div>
+      <div style="font-size:9px;color:var(--text-dim)">馬名</div>
+      <div style="font-size:9px;color:var(--text-dim)">ポジション</div>
+      <div style="font-size:9px;color:var(--text-dim)">先行/末脚</div>
+      <div style="font-size:9px;color:var(--text-dim)">コメント</div>
+    </div>
+    ${horses.map(h=>{
+      const d=tkHorseData[h.i]||{pos:'chutan',rank:'',comment:''};
+      return `<div class="tk-horse-row">
+        <div style="font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text-dim)">${h.i}</div>
+        <select class="h-sel" onchange="tkHorseData[${h.i}].rank=this.value;renderTkSheet(curR().horses)" style="font-size:12px;font-weight:900;width:44px;padding:3px 2px">
+          ${RANK_LIST.map(r=>`<option value="${r}"${d.rank===r?' selected':''}>${r||'—'}</option>`).join('')}
+        </select>
+        <div style="font-size:12px;font-weight:700">${h.n||`馬${h.i}`}</div>
+        <select class="h-sel" onchange="tkHorseData[${h.i}].pos=this.value;renderTkSheet(curR().horses)" style="font-size:11px;width:100%">
+          ${['nige','senkou','chutan','koho'].map(p=>`<option value="${p}"${d.pos===p?' selected':''}>${POS_LABEL[p]}</option>`).join('')}
+        </select>
+        <div style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;text-align:center">${h.se||'—'}<br>${h.su||'—'}</div>
+        <input type="text" placeholder="メモ" value="${d.comment}"
+          oninput="tkHorseData[${h.i}].comment=this.value;renderTkSheet(curR().horses)"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:4px 5px;border-radius:5px;outline:none;font-family:'Noto Sans JP',sans-serif">
+      </div>`;
+    }).join('')}`;
+}
+
+function generateTenkai(){
+  saveRaceState();
+  const r=curR();
+  if(!r.horses.length){showToast('馬データがありません');return;}
+  const maxSen=Math.max(...r.horses.map(h=>h.se||0));
+  r.horses.forEach(h=>{
+    tkHorseData[h.i]={pos:estimatePos(h.se||0,maxSen),rank:'',comment:''};
+  });
+  initTenkai();
+  showToast('自動生成しました');
+}
+
+function renderTkSheet(horses){
+  if(!horses||!horses.length) return;
+  const venue=document.getElementById('venue')?.value||'';
+  const dist=document.getElementById('distance')?.value||'';
+  const surf=surface==='ダ'?'ダート':'芝';
+  const pace=tkPace==='H'?'ハイペース':tkPace==='S'?'スローペース':'ミドルペース';
+  const paceColor=tkPace==='H'?'var(--red)':tkPace==='S'?'var(--accent)':'var(--gold)';
+  const summary=document.getElementById('tk-summary')?.value||'';
+  const point=document.getElementById('tk-point')?.value||'';
+  const yuri=document.getElementById('tk-yuri')?.value||'';
+  const furi=document.getElementById('tk-furi')?.value||'';
+
+  const byPos={nige:[],senkou:[],chutan:[],koho:[]};
+  horses.forEach(h=>{
+    const d=tkHorseData[h.i]||{pos:'chutan',rank:'',comment:''};
+    byPos[d.pos]?.push({...h,...d});
+  });
+
+  const ranked=horses
+    .map(h=>({...h,...(tkHorseData[h.i]||{})}))
+    .filter(h=>h.rank)
+    .sort((a,b)=>RANK_LIST.indexOf(a.rank)-RANK_LIST.indexOf(b.rank));
+
+  document.getElementById('tk-sheet').innerHTML=`
+    <div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+      <div>
+        <div style="font-size:14px;font-weight:900">${venue} ${surf}${dist}m 展開予想</div>
+        ${summary?`<div style="font-size:11px;color:var(--text-dim);margin-top:2px">${summary}</div>`:''}
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:13px;font-weight:900;color:${paceColor}">${pace}</div>
+      </div>
+    </div>
+
+    <div class="tk-section">
+      <div class="tk-section-title">🏇 想定隊列</div>
+      <div class="tk-formation">
+        ${['nige','senkou','chutan','koho'].map(pos=>`
+          <div class="tk-formation-col">
+            <div class="tk-formation-label"><span class="tk-pos pos-${pos}">${POS_LABEL[pos]}</span></div>
+            ${byPos[pos].map(h=>`
+              <div class="tk-horse-chip">
+                <div class="tk-num">${h.i}</div>
+                <div style="font-size:11px;font-weight:700;line-height:1.3">${h.n||`馬${h.i}`}${h.comment?`<br><span style="font-size:9px;color:var(--text-dim);font-weight:400">${h.comment}</span>`:''}</div>
+              </div>`).join('')}
+            ${byPos[pos].length===0?'<div style="font-size:10px;color:var(--text-dim);padding:4px 0">—</div>':''}
+          </div>`).join('')}
+      </div>
+    </div>
+
+    ${point||yuri||furi?`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      ${point?`<div>
+        <div class="tk-section-title">📌 展開のポイント</div>
+        <div style="font-size:11px;color:var(--text-mid);line-height:2;white-space:pre-line">${point}</div>
+      </div>`:'<div></div>'}
+      <div>
+        ${yuri?`<div style="margin-bottom:8px">
+          <div style="font-size:10px;color:var(--green);font-weight:700;margin-bottom:3px">✓ 有利</div>
+          <div style="font-size:11px;color:var(--text-mid);line-height:1.8;white-space:pre-line">${yuri}</div>
+        </div>`:''}
+        ${furi?`<div>
+          <div style="font-size:10px;color:var(--red);font-weight:700;margin-bottom:3px">✗ 不利</div>
+          <div style="font-size:11px;color:var(--text-mid);line-height:1.8;white-space:pre-line">${furi}</div>
+        </div>`:''}
+      </div>
+    </div>`:''}
+
+    <div class="tk-section">
+      <div class="tk-section-title">🏆 展開利ランキング</div>
+      ${ranked.length?ranked.map(h=>`
+        <div class="tk-ranking-row">
+          <div class="tk-rank tk-${h.rank}">${h.rank}</div>
+          <div class="tk-num">${h.i}</div>
+          <div style="font-size:13px;font-weight:700;flex:1">${h.n||`馬${h.i}`}</div>
+          <span class="tk-pos pos-${h.pos}" style="font-size:9px">${POS_LABEL[h.pos]}</span>
+          <div style="font-size:10px;color:var(--text-dim)">${h.comment||''}</div>
+        </div>`).join('')
+      :'<div style="color:var(--text-dim);font-size:11px;padding:8px 0">展開利ランクを設定してください</div>'}
+    </div>
+  `;
+}
+function fv(id){return parseFloat(document.getElementById(id)?.value)||0}
+function sv(id){return document.getElementById(id)?.value?.trim()||''}
+function sv2(id,val){const el=document.getElementById(id);if(el) el.value=val;}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// Print override - show PDF modal content
+window.onbeforeprint=function(){
+  document.getElementById('pdf-modal').classList.remove('show');
+};
+
+
+// ══ COURSE MASTER EDITOR ══
+let USER_CM = {}; // ユーザー追加・編集分（localStorage保存）
+
+function loadUserCM(){
+  try{ const s=localStorage.getItem('jra_user_cm_v7'); USER_CM=s?JSON.parse(s):{}; }
+  catch(e){ USER_CM={}; }
+  // USER_CMでCMを上書き
+  Object.assign(CM, USER_CM);
+}
+
+function saveUserCM(){
+  localStorage.setItem('jra_user_cm_v7', JSON.stringify(USER_CM));
+}
+
+function renderCMTable(){
+  const tbody=document.getElementById('cm-tbody');
+  if(!tbody) return;
+  const keys=Object.keys(CM).sort();
+  tbody.innerHTML=keys.map(key=>{
+    const c=CM[key];
+    const isUser=!!USER_CM[key];
+    return `<tr style="${isUser?'background:var(--green-dim)':''}">
+      <td style="padding:4px;color:${isUser?'var(--green)':'var(--accent)'};font-family:'JetBrains Mono',monospace;font-size:9px;white-space:nowrap">${key.replace('_null','')}</td>
+      <td style="padding:4px;text-align:center"><input type="number" value="${c.rc}" step="0.1" style="width:36px;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:10px;padding:2px;border-radius:4px;text-align:center;font-family:'JetBrains Mono',monospace" onchange="updateCMField('${key}','rc',this.value)"></td>
+      <td style="padding:4px;text-align:center"><input type="number" value="${c.sen}" step="0.01" style="width:40px;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:10px;padding:2px;border-radius:4px;text-align:center;font-family:'JetBrains Mono',monospace" onchange="updateCMField('${key}','sen',this.value)"></td>
+      <td style="padding:4px;text-align:center"><input type="number" value="${c.sue}" step="0.01" style="width:40px;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:10px;padding:2px;border-radius:4px;text-align:center;font-family:'JetBrains Mono',monospace" onchange="updateCMField('${key}','sue',this.value)"></td>
+      <td style="padding:4px;text-align:center"><input type="number" value="${c.rc3}" step="0.01" style="width:40px;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:10px;padding:2px;border-radius:4px;text-align:center;font-family:'JetBrains Mono',monospace" onchange="updateCMField('${key}','rc3',this.value)"></td>
+      <td style="padding:4px;text-align:center"><input type="number" value="${c.ue1}" step="0.5" style="width:36px;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:10px;padding:2px;border-radius:4px;text-align:center;font-family:'JetBrains Mono',monospace" onchange="updateCMField('${key}','ue1',this.value)"></td>
+      <td style="padding:4px;text-align:center"><input type="number" value="${c.ue23}" step="0.5" style="width:36px;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:10px;padding:2px;border-radius:4px;text-align:center;font-family:'JetBrains Mono',monospace" onchange="updateCMField('${key}','ue23',this.value)"></td>
+      <td style="padding:4px;text-align:center;font-size:9px;color:${c.sboSup?'var(--green)':'var(--text-dim)'}">${c.sboSup?'ON':'OFF'}</td>
+      <td style="padding:4px;text-align:center">
+        ${isUser?`<button style="background:transparent;border:1px solid var(--red);color:var(--red);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:9px" onclick="deleteCMRow('${key}')">削除</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updateCMField(key, field, val){
+  const v=parseFloat(val);
+  if(isNaN(v)) return;
+  CM[key][field]=v;
+  if(!USER_CM[key]) USER_CM[key]={...CM[key]};
+  USER_CM[key][field]=v;
+  saveUserCM();
+  onCourseChange();
+}
+
+function addCourseRow(){
+  document.getElementById('course-add-form').style.display='block';
+}
+
+function saveCourseRow(){
+  const grade=document.getElementById('af-grade').value;
+  const venue=document.getElementById('af-venue').value;
+  const surf=document.getElementById('af-surf').value;
+  const dist=document.getElementById('af-dist').value;
+  const pace=document.getElementById('af-pace').value;
+  if(!dist){ showToast('距離を入力してください'); return; }
+  const key=`${grade}_${venue}_${surf}_${dist}_${pace}`;
+  const entry={
+    rc:parseFloat(document.getElementById('af-rc').value)||8,
+    sen:parseFloat(document.getElementById('af-sen').value)||1,
+    sue:parseFloat(document.getElementById('af-sue').value)||1,
+    rc3:parseFloat(document.getElementById('af-rc3').value)||1.2,
+    ue1:parseFloat(document.getElementById('af-ue1').value)||0,
+    ue23:parseFloat(document.getElementById('af-ue23').value)||0,
+    sboSup:document.getElementById('af-sbo').value==='true',
+  };
+  CM[key]=entry;
+  USER_CM[key]=entry;
+  saveUserCM();
+  renderCMTable();
+  onCourseChange();
+  document.getElementById('course-add-form').style.display='none';
+  showToast(`${key.replace('_null','')} を追加しました`);
+}
+
+function deleteCMRow(key){
+  if(!confirm(`「${key.replace('_null','')}」を削除しますか？`)) return;
+  delete CM[key];
+  delete USER_CM[key];
+  saveUserCM();
+  renderCMTable();
+  onCourseChange();
+  showToast('削除しました');
+}
+
+init();
+
+</script>
+</body>
+</html>
