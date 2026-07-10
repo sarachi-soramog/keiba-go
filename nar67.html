@@ -1705,26 +1705,19 @@ function loadCsv(){
         });
       });
       // ①〜⑤順位（CSV列21-25）から指数比較「手動入力」を復元
-      // 順位のみ保存されているため、同一レース内の最大順位から擬似スコア（大きいほど上位）を逆算して復元する
+      // 順位の数字をそのまま転記する（空欄は空欄のまま）。復元後は手動入力タブの
+      // 「▶ 手動入力で比較表を生成」ボタンで再計算してください。
       r.manualCmp={};
       {
         const srcRankCols=[21,22,23,24,25];
-        const srcMaxRank=[0,0,0,0,0];
-        rows.forEach(cols=>{
-          srcRankCols.forEach((ci,si)=>{
-            const rv=parseInt(cols[ci]);
-            if(!isNaN(rv)&&rv>srcMaxRank[si])srcMaxRank[si]=rv;
-          });
-        });
         rows.forEach(cols=>{
           const umaban=parseInt(cols[7]);
           if(isNaN(umaban)||umaban<1||umaban>N)return;
           srcRankCols.forEach((ci,si)=>{
-            const rv=parseInt(cols[ci]);
-            if(!isNaN(rv)&&srcMaxRank[si]>0){
-              if(!r.manualCmp[umaban])r.manualCmp[umaban]=['','','','',''];
-              r.manualCmp[umaban][si]=String(srcMaxRank[si]+1-rv);
-            }
+            const raw=(cols[ci]||'').trim();
+            if(raw===''||isNaN(parseInt(raw)))return;
+            if(!r.manualCmp[umaban])r.manualCmp[umaban]=['','','','',''];
+            r.manualCmp[umaban][si]=raw;
           });
         });
         if(!Object.keys(r.manualCmp).length)r.manualCmp={};
