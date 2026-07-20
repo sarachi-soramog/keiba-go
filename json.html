@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kichiuma JSON Extractor</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 30px;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    textarea,
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: Monaco, Menlo, Consolas, "Noto Sans Mono", monospace;
+      font-size: 13px;
+      resize: vertical;
+    }
+
+    textarea:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 3px rgba(76,175,80,0.12);
+    }
+
+    #textInput {
+      height: 220px;
+    }
+
+    #jsonOutput {
+      height: 320px;
+      background: #f9f9f9;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #f5f5f5;
+      border-color: #999;
+    }
+
+    button.primary {
+      background: #4CAF50;
+      color: #fff;
+      border-color: #4CAF50;
+    }
+
+    button.primary:hover {
+      background: #45a049;
+      border-color: #45a049;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .error,
+    .success {
+      display: none;
+      padding: 12px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .error {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .success {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .error.show,
+    .success.show {
+      display: block;
+    }
+
+    .output-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 10px;
+    }
+
+    .copy-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .instructions {
+      background: #f0f4f8;
+      padding: 15px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #333;
+      margin-top: 20px;
+    }
+
+    .instructions ol {
+      margin-left: 20px;
+      margin-top: 10px;
+    }
+
+    .instructions li {
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>kichiuma JSON Extractor</h1>
+    <p class="subtitle">競馬データを JSON 形式に変換します</p>
+
+    <div id="error" class="error"></div>
+    <div id="success" class="success"></div>
+
+    <div class="section">
+      <label for="textInput">レースデータを貼り付け</label>
+      <textarea id="textInput" placeholder="kichiuma.net からコピーしたテキストを貼り付けてください"></textarea>
+    </div>
+
+    <div class="button-group">
+      <button class="primary" onclick="extractJSON()">テキストから抽出</button>
+      <button onclick="clearAll()">クリア</button>
+    </div>
+
+    <div class="section">
+      <div class="output-label">
+        <label for="jsonOutput">JSON 出力</label>
+        <button class="copy-btn" onclick="copyJSON()" id="copyBtn" style="display:none;">コピー</button>
+      </div>
+      <textarea id="jsonOutput" readonly></textarea>
+    </div>
+
+    <div class="instructions">
+      <strong>使い方：</strong>
+      <ol>
+        <li>kichiuma.net のページをブラウザで表示</li>
+        <li>以下をコピー：
+          <ul style="margin-top: 5px; margin-bottom: 5px; margin-left: 20px;">
+            <li>競馬場名（東京、京都など）</li>
+            <li>レース番号</li>
+            <li>レース名やグレード情報を含む行</li>
+            <li>馬場や距離を含む行</li>
+            <li>馬のテーブル全体</li>
+          </ul>
+        </li>
+        <li>上のテキストエリアに貼り付け</li>
+        <li>「テキストから抽出」をクリック</li>
+        <li>JSON をコピーして使用</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    function showError(msg) {
+      const errorEl = document.getElementById("error");
+      const successEl = document.getElementById("success");
+      errorEl.textContent = msg;
+      errorEl.classList.add("show");
+      successEl.classList.remove("show");
+    }
+
+    function showSuccess(msg) {
+      const successEl = document.getElementById("success");
+      const errorEl = document.getElementById("error");
+      successEl.textContent = msg;
+      successEl.classList.add("show");
+      errorEl.classList.remove("show");
+    }
+
+    function clearMessages() {
+      document.getElementById("error").classList.remove("show");
+      document.getElementById("success").classList.remove("show");
+    }
+
+    function toInt(v) {
+      const n = parseInt(String(v ?? "").trim(), 10);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function toFloat(v) {
+      const n = parseFloat(String(v ?? "").trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function getCellText(cell) {
+      return cell?.innerText?.trim() || "";
+    }
+
+    function extractJSON() {
+      clearMessages();
+
+      const textInput = document.getElementById("textInput").value;
+      if (!textInput.trim()) {
+        showError("テキストを貼り付けてください");
+        return;
+      }
+
+      try {
+        const lines = textInput
+          .split("
+")
+          .map(line => line.trim())
+          .filter(line => line);
+
+        if (lines.length === 0) {
+          showError("有効なテキストが見つかりませんでした");
+          return;
+        }
+
+        let venue = "";
+        let raceNum = "";
+        let surface = "";
+        let distance = 0;
+        let raceName = "";
+        let grade = "";
+
+        for (let i = 0; i < Math.min(lines.length, 15); i++) {
+          const line = lines[i];
+
+          if (!venue) {
+            venue = line;
+          }
+
+          if (!raceNum && /^d+R$/.test(line)) {
+            raceNum = line;
+          }
+
+          const surfaceMatch = line.match(/([芝ダ障])(d{3,4})m/);
+          if (surfaceMatch) {
+            surface = surfaceMatch[1];
+            distance = toInt(surfaceMatch[2]);
+          }
+
+          if (line.includes("GI")) grade = "GI";
+          else if (line.includes("GII")) grade = "GII";
+          else if (line.includes("GIII")) grade = "GIII";
+          else if (line.includes("L")) grade = "L";
+          else if (line.includes("OP")) grade = "OP";
+
+          if (
+            line.includes("レース") ||
+            line.includes("ステークス") ||
+            line.includes("記念") ||
+            line.includes("賞") ||
+            line.includes("杯")
+          ) {
+            raceName = line.replace(/^d+Rs*/, "").trim();
+          }
+        }
+
+        let tableStartIdx = -1;
+        for (let i = 0; i < lines.length; i++) {
+          if (
+            lines[i].includes("馬番") ||
+            lines[i].includes("印") ||
+            lines[i].includes("SP") ||
+            lines[i].includes("名前")
+          ) {
+            tableStartIdx = i + 1;
+            break;
+          }
+        }
+
+        if (tableStartIdx === -1) {
+          showError("馬のテーブル開始位置が見つかりませんでした");
+          return;
+        }
+
+        const horses = [];
+
+        for (let i = tableStartIdx; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line) continue;
+
+          if (
+            line.includes("合計") ||
+            line.includes("買い目") ||
+            line.includes("払戻") ||
+            line.includes("直前オッズ")
+          ) {
+            continue;
+          }
+
+          const horse = parseTextLine(line);
+          if (horse && horse.name) {
+            horses.push(horse);
+          }
+        }
+
+        if (horses.length === 0) {
+          showError("馬データを抽出できませんでした");
+          return;
+        }
+
+        const result = {
+          raceinfo: {
+            venue,
+            raceNum,
+            surface,
+            distance,
+            raceName,
+            grade
+          },
+          horses
+        };
+
+        document.getElementById("jsonOutput").value = JSON.stringify(result, null, 2);
+        document.getElementById("copyBtn").style.display = "inline-block";
+        showSuccess(`${horses.length} 件の馬データを抽出しました`);
+      } catch (err) {
+        showError("エラー: " + err.message);
+      }
+    }
+
+    function parseTextLine(line) {
+      let parts = line.split("\t").map(p => p.trim());
+
+      if (parts.length < 5) {
+        parts = line.split(/s+/).filter(Boolean);
+      }
+
+      if (parts.length === 0) return null;
+
+      if (parts.length >= 13) {
+        const num = toInt(parts[0]);
+        const sp = toFloat(parts[2]);
+        const name = parts[3];
+        const senkou = toInt(parts[4]);
+        const spmax = toInt(parts[10]);
+        const suikyaku = toInt(parts[12]);
+
+        return {
+          num,
+          name,
+          sp,
+          senkou,
+          spmax,
+          suikyaku,
+          agarirank: null
+        };
+      }
+
+      if (parts.length >= 4) {
+        const maybeNum = toInt(parts[0]);
+        const maybeSp = toFloat(parts[1]);
+        const maybeName = parts[2] || "";
+        const maybeSenkou = toInt(parts[3]);
+
+        return {
+          num: maybeNum,
+          name: maybeName,
+          sp: maybeSp,
+          senkou: maybeSenkou,
+          spmax: 0,
+          suikyaku: 0,
+          agarirank: null
+        };
+      }
+
+      const name = parts.find(p => /[ぁ-んァ-ヶ一-龠A-Za-z]/.test(p)) || "";
+      if (!name) return null;
+
+      return {
+        num: 0,
+        name,
+        sp: 0,
+        senkou: 0,
+        spmax: 0,
+        suikyaku: 0,
+        agarirank: null
+      };
+    }
+
+    function parseHorseRow(cells) {
+      const num = toInt(getCellText(cells[0]));
+      const name = getCellText(cells[2]);
+      const sp = toFloat(getCellText(cells[3]));
+      const senkou = toInt(getCellText(cells[4]));
+      const spmax = toInt(getCellText(cells[10]));
+      const suikyaku = toInt(getCellText(cells[11]));
+
+      return {
+        num,
+        name,
+        sp,
+        senkou,
+        spmax,
+        suikyaku,
+        agarirank: null
+      };
+    }
+
+    function copyJSON() {
+      const textarea = document.getElementById("jsonOutput");
+      textarea.select();
+      document.execCommand("copy");
+      showSuccess("JSON をコピーしました");
+    }
+
+    function clearAll() {
+      document.getElementById("textInput").value = "";
+      document.getElementById("jsonOutput").value = "";
+      document.getElementById("copyBtn").style.display = "none";
+      clearMessages();
+    }
+  </script>
+</body>
+</html>
