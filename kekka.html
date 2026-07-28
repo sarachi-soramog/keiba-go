@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>競馬結果パーサー</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --gray: #6b7280;
+    --gray-bg: #f9fafb;
+    --orange: #ea580c;
+    --orange-bg: #fff7ed;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+    --yellow: #ca8a04;
+    --yellow-bg: #fefce8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 20px;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  /* Input Section */
+  .input-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: var(--accent);
+    background: var(--blue-bg);
+  }
+  .upload-area p { color: var(--text-muted); margin-bottom: 8px; }
+  .upload-area .icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-area .link { color: var(--accent); font-weight: 600; }
+
+  .divider {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 16px 0;
+    position: relative;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: var(--border);
+  }
+  .divider::before { left: 0; }
+  .divider::after { right: 0; }
+
+  textarea#pasteArea {
+    width: 100%;
+    min-height: 120px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.85rem;
+    font-family: 'Menlo', 'Monaco', monospace;
+    resize: vertical;
+    color: var(--text);
+  }
+  textarea#pasteArea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-secondary { background: var(--border); color: var(--text); }
+  .btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
+  .btn-success { background: var(--green); color: white; }
+  .btn-success:hover:not(:disabled) { background: #15803d; }
+
+  /* Race Info */
+  .race-info {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .race-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px 16px;
+  }
+  .race-info-item { font-size: 0.85rem; }
+  .race-info-item .label { color: var(--text-muted); }
+  .race-info-item .value { font-weight: 600; }
+
+  /* Results Table */
+  .results-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .table-wrapper { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  thead th {
+    background: #f1f5f9;
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+  tbody td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #f8fafc; }
+
+  /* Row backgrounds for exceptions */
+  tr.row-cancel { background: var(--gray-bg); }
+  tr.row-exclude { background: var(--orange-bg); }
+  tr.row-dnf { background: var(--red-bg); }
+  tr.row-disqualify { background: var(--red-bg); }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge-cancel { background: #e5e7eb; color: var(--gray); }
+  .badge-exclude { background: #fed7aa; color: var(--orange); }
+  .badge-dnf { background: #fecaca; color: var(--red); }
+  .badge-disqualify { background: #fecaca; color: var(--red); }
+  .badge-deadheat { background: var(--blue-bg); color: var(--blue); }
+
+
+
+  /* Warnings */
+  .warnings-card {
+    background: var(--yellow-bg);
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .warnings-card h3 {
+    font-size: 0.95rem;
+    color: var(--yellow);
+    margin-bottom: 8px;
+  }
+  .warnings-card ul { list-style: none; }
+  .warnings-card li {
+    font-size: 0.85rem;
+    color: #92400e;
+    padding: 4px 0;
+    padding-left: 20px;
+    position: relative;
+  }
+  .warnings-card li::before {
+    content: '⚠';
+    position: absolute;
+    left: 0;
+  }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+
+  .hidden { display: none !important; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    .header h1 { font-size: 1.3rem; }
+    .race-info-grid { grid-template-columns: 1fr 1fr; }
+    .btn-group { flex-direction: column; }
+    .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>競馬結果パーサー</h1>
+    <p>NAR・吉馬形式の結果テキストから着順・馬番・馬名・コーナー通過順・人気を抽出</p>
+  </div>
+
+  <!-- Input Section -->
+  <div class="input-card">
+    <div class="upload-area" id="uploadArea">
+      <div class="icon">📄</div>
+      <p>テキストファイルをドラッグ&ドロップ または <span class="link">ファイルを選択</span></p>
+      <input type="file" id="fileInput" accept=".txt,text/plain" hidden>
+    </div>
+    <div class="divider">または</div>
+    <textarea id="pasteArea" placeholder="ここに結果テキストを貼り付け..."></textarea>
+    <div class="btn-group">
+      <button class="btn btn-primary" id="parseBtn" onclick="parseInput()">解析する</button>
+      <button class="btn btn-secondary" onclick="clearAll()">クリア</button>
+    </div>
+  </div>
+
+  <!-- Warnings -->
+  <div class="warnings-card hidden" id="warningsCard">
+    <h3>解析警告</h3>
+    <ul id="warningsList"></ul>
+  </div>
+
+  <!-- Race Info -->
+  <div class="race-info hidden" id="raceInfoCard">
+    <div class="race-info-grid" id="raceInfoGrid"></div>
+  </div>
+
+  <!-- Results Table -->
+  <div id="resultsSection">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">🏇</div>
+      <p>ファイルをアップロードまたはテキストを貼り付けて解析してください</p>
+    </div>
+    <div class="results-card hidden" id="resultsCard">
+      <div class="table-wrapper">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>着順</th>
+              <th>馬番</th>
+              <th>馬名</th>
+              <th>コーナー通過順</th>
+              <th>人気</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="btn-group hidden" id="exportButtons">
+      <button class="btn btn-success" onclick="exportCSV()">CSV出力</button>
+      <button class="btn btn-secondary" onclick="copyToClipboard()">クリップボードにコピー</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================
+// グローバル状態
+// ============================================
+let currentResults = null;
+
+// ============================================
+// ファイルアップロード処理
+// ============================================
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const pasteArea = document.getElementById('pasteArea');
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', () => {
+  uploadArea.classList.remove('dragover');
+});
+uploadArea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    pasteArea.value = e.target.result;
+    parseInput();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ============================================
+// メイン解析関数
+// ============================================
+function parseInput() {
+  const text = pasteArea.value.trim();
+  if (!text) {
+    alert('テキストを入力またはファイルをアップロードしてください。');
+    return;
+  }
+
+  const result = parseRaceText(text);
+  currentResults = result;
+  renderResults(result);
+}
+
+// ============================================
+// パーサー本体
+// ============================================
+function parseRaceText(text) {
+  const lines = text.split(/\r?\n/);
+  const results = [];
+  const warnings = [];
+  const raceInfo = {};
+
+  // --- レース情報の抽出 ---
+  // 日付・開催場・レース番号
+  // NAR: "2026年7月27日（月）　川　崎　第10競走　競走成績"
+  // 吉馬: "2026年07月27日　(月曜日)　川崎競馬　第10競走"
+  for (const line of lines) {
+    const m = line.match(/(\d{4}年\s*\d{1,2}月\s*\d{1,2}日\s*[（(][^)）]+[)）])\s*(.+?)\s*第\s*(\d+)\s*競走/);
+    if (m) {
+      raceInfo.date = m[1].replace(/\s+/g, ' ');
+      raceInfo.venue = m[2].replace(/[　\s競馬]/g, '');
+      raceInfo.raceNumber = m[3];
+      break;
+    }
+  }
+
+  // コース条件
+  // NAR: "ダート　1500ｍ（左）　　天候：曇　　馬場：良　..."
+  // 吉馬: "サラブレッド系　一般　ダート1500m　左" + 別行 "天候：曇　馬場状態：良"
+  for (const line of lines) {
+    const m = line.match(/(ダート|芝)\s*[　\s]*(\d+)\s*[ｍm]/i);
+    if (m) {
+      raceInfo.trackType = m[1];
+      raceInfo.distance = m[2] + 'm';
+      break;
+    }
+  }
+  // 天候・馬場状態（別行の場合もある）
+  for (const line of lines) {
+    const wm = line.match(/天候[：:]\s*(\S+)/);
+    if (wm) raceInfo.weather = wm[1];
+    const cm = line.match(/馬場(?:状態)?[：:]\s*(\S+)/);
+    if (cm) raceInfo.trackCondition = cm[1];
+    if (raceInfo.weather && raceInfo.trackCondition) break;
+  }
+
+  // レース名: ヘッダー行より前で、日程行より後にある空でない行
+  let dateLineIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].match(/\d{4}年.*競走成績/) || lines[i].match(/\d{4}年.*第\d+競走/)) {
+      dateLineIdx = i;
+      break;
+    }
+  }
+  if (dateLineIdx >= 0) {
+    // 日程行の後、空行を飛ばして最初の実質的な行をレース名候補1
+    // その次をレース名候補2（賞名など）
+    const nameCandidates = [];
+    for (let i = dateLineIdx + 1; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (!trimmed) continue;
+      if (trimmed.match(/ダート|芝|サラブレッド|サラ系|電話投票|発走/)) break;
+      if (trimmed.match(/^\(\d着\)|^賞金|^本賞金/)) continue;
+      if (trimmed.length >= 2 && !trimmed.match(/^(出馬表|オッズ|対戦表|印刷|レース映像|■)/)) {
+        nameCandidates.push(trimmed);
+        if (nameCandidates.length >= 2) break;
+      }
+    }
+    if (nameCandidates.length >= 1) raceInfo.raceName = nameCandidates.join(' ');
+  }
+
+  // --- ヘッダー行の検索 ---
+  // 吉馬形式: 1行ヘッダーに "角通過順" を含む
+  // NAR形式: 複数行ヘッダーに "着順" と "馬名" を含む
+  let format = null; // 'yoshi' or 'nar'
+  let startIdx = -1;
+  let cornerIdx = -1;
+  let popularityIdx = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('角通過順')) {
+      format = 'yoshi';
+      startIdx = i;
+      const headers = lines[i].split('\t').map(h => h.trim());
+      headers.forEach((h, idx) => {
+        if (h.includes('角通過') || h.includes('コーナー')) cornerIdx = idx;
+        if (h === '人' || h.includes('人気')) popularityIdx = idx;
+      });
+      break;
+    }
+  }
+  if (format !== 'yoshi') {
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('着順') && lines[i].includes('馬名')) {
+        format = 'nar';
+        startIdx = i;
+        break;
+      }
+    }
+  }
+  if (startIdx === -1) {
+    warnings.push('ヘッダー行が見つかりませんでした。データ行を直接検索します。');
+    startIdx = 0;
+    format = 'auto';
+  }
+
+  // --- 終了位置の検索 ---
+  // NAR: "払戻金", 吉馬: "[PR]" or "■" or "配当"
+  let endIdx = lines.length;
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith('払戻金') || trimmed.startsWith('[PR]') || trimmed.startsWith('■') || trimmed.startsWith('配当')) {
+      endIdx = i;
+      break;
+    }
+  }
+
+  // --- ヘッダー継続行のスキップキーワード ---
+  const skipKeywords = ['着順', '重量', '騎手', '調教師', '増減', 'タイム', '着差',
+    '上がり', '3F', 'コーナー', '通過順', '人気', '単勝', 'オッズ', '枠', '所属', '性齢', '馬体重',
+    '順', '斤量', '上3F', '角通過', '人', '馬'];
+
+  // --- データ行の解析 ---
+  for (let i = startIdx + 1; i < endIdx; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // タブ区切りで分割
+    let fields = trimmed.split('\t');
+    // タブがない場合は連続スペースで分割を試行
+    if (fields.length < 4) {
+      fields = trimmed.split(/[ ]{2,}/);
+    }
+    if (fields.length < 4) continue;
+
+    const firstField = fields[0].trim();
+
+    // ヘッダー継続行をスキップ
+    if (skipKeywords.some(kw => firstField.includes(kw))) continue;
+
+    // データ行か判定（数字 or 異常系キーワード）
+    const isNumber = /^\d+$/.test(firstField);
+    const isException = isExceptionKeyword(firstField);
+
+    if (!isNumber && !isException) continue;
+
+    // --- フィールド抽出 ---
+    const finishPos = firstField;
+    let umaban = '';
+    let umamei = '';
+    let cornerOrder = '';
+    let popularity = '';
+    let exceptionType = '';
+
+    if (isException) {
+      exceptionType = normalizeExceptionType(firstField);
+    }
+
+    // 馬番と馬名は固定位置（インデックス2, 3）から取得
+    if (fields.length >= 4) {
+      umaban = fields[2] ? fields[2].trim() : '';
+      umamei = fields[3] ? fields[3].trim() : '';
+    }
+
+    // コーナー通過順と人気の抽出（パターンベース）
+    // "x-x-x" パターンを後方から探し、その次を人気とする
+    // この方法はNAR・吉馬両形式で共通して動作する
+    if (!isException) {
+      for (let j = fields.length - 1; j >= 4; j--) {
+        const val = fields[j] ? fields[j].trim() : '';
+        if (val && val.match(/^\d+(-\d+)+$/) && !cornerOrder) {
+          cornerOrder = val;
+          if (j + 1 < fields.length && fields[j + 1]) {
+            popularity = fields[j + 1].trim();
+          }
+        }
+      }
+      if (fields.length >= 14 && !cornerOrder) {
+        warnings.push(`馬番${umaban} ${umamei}: コーナー通過順が見つかりません。`);
+      }
+    } else {
+      // 例外馬はコーナー通過順・人気なし
+      cornerOrder = '';
+      popularity = '';
+    }
+
+    // バリデーション
+    if (!umaban) {
+      warnings.push(`着順${finishPos}: 馬番が取得できませんでした。`);
+    }
+    if (!umamei) {
+      warnings.push(`馬番${umaban}: 馬名が取得できませんでした。`);
+    }
+
+    results.push({
+      finishPos,
+      umaban,
+      umamei,
+      cornerOrder,
+      popularity,
+      isException,
+      exceptionType,
+      fieldCount: fields.length,
+      isDeadHeat: false
+    });
+  }
+
+  // --- 同着判定 ---
+  const posGroups = {};
+  results.forEach((r, idx) => {
+    if (/^\d+$/.test(r.finishPos)) {
+      if (!posGroups[r.finishPos]) posGroups[r.finishPos] = [];
+      posGroups[r.finishPos].push(idx);
+    }
+  });
+  Object.values(posGroups).forEach(indices => {
+    if (indices.length > 1) {
+      indices.forEach(idx => {
+        results[idx].isDeadHeat = true;
+      });
+      warnings.push(`着順${results[indices[0]].finishPos}に同着があります（${indices.map(i => results[i].umamei).join('、')}）。`);
+    }
+  });
+
+  if (results.length === 0) {
+    warnings.push('有効なデータ行が見つかりませんでした。テキスト形式を確認してください。');
+  }
+
+  return { results, warnings, raceInfo };
+}
+
+// ============================================
+// 異常系キーワード判定
+// ============================================
+function isExceptionKeyword(str) {
+  const keywords = ['取消', '除外', '競走中止', '中止', '失格', '発走取消'];
+  return keywords.some(kw => str.includes(kw));
+}
+
+function normalizeExceptionType(str) {
+  if (str.includes('取消') || str.includes('発走取消')) return 'cancel';
+  if (str.includes('除外')) return 'exclude';
+  if (str.includes('中止')) return 'dnf';
+  if (str.includes('失格')) return 'disqualify';
+  return 'unknown';
+}
+
+// ============================================
+// 結果表示
+// ============================================
+function renderResults(data) {
+  const { results, warnings, raceInfo } = data;
+
+  // 警告
+  const warningsCard = document.getElementById('warningsCard');
+  const warningsList = document.getElementById('warningsList');
+  if (warnings.length > 0) {
+    warningsList.innerHTML = warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('');
+    warningsCard.classList.remove('hidden');
+  } else {
+    warningsCard.classList.add('hidden');
+  }
+
+  // レース情報
+  const raceInfoCard = document.getElementById('raceInfoCard');
+  const raceInfoGrid = document.getElementById('raceInfoGrid');
+  if (Object.keys(raceInfo).length > 0) {
+    const items = [];
+    if (raceInfo.date) items.push(['日付', raceInfo.date]);
+    if (raceInfo.venue) items.push(['開催場', raceInfo.venue]);
+    if (raceInfo.raceNumber) items.push(['レース番号', `第${raceInfo.raceNumber}競走`]);
+    if (raceInfo.raceName) items.push(['レース名', raceInfo.raceName]);
+    if (raceInfo.trackType) items.push(['コース', raceInfo.trackType]);
+    if (raceInfo.distance) items.push(['距離', raceInfo.distance]);
+    if (raceInfo.weather) items.push(['天候', raceInfo.weather]);
+    if (raceInfo.trackCondition) items.push(['馬場状態', raceInfo.trackCondition]);
+    raceInfoGrid.innerHTML = items.map(([label, value]) =>
+      `<div class="race-info-item"><span class="label">${label}: </span><span class="value">${escapeHtml(value)}</span></div>`
+    ).join('');
+    raceInfoCard.classList.remove('hidden');
+  } else {
+    raceInfoCard.classList.add('hidden');
+  }
+
+  // テーブル
+  const emptyState = document.getElementById('emptyState');
+  const resultsCard = document.getElementById('resultsCard');
+  const exportButtons = document.getElementById('exportButtons');
+  const tbody = document.getElementById('resultsBody');
+
+  if (results.length === 0) {
+    emptyState.classList.remove('hidden');
+    resultsCard.classList.add('hidden');
+    exportButtons.classList.add('hidden');
+    return;
+  }
+
+  emptyState.classList.add('hidden');
+  resultsCard.classList.remove('hidden');
+  exportButtons.classList.remove('hidden');
+
+  tbody.innerHTML = results.map(r => renderRow(r)).join('');
+}
+
+function renderRow(r) {
+  let rowClass = '';
+  let badge = '';
+  let finishDisplay = escapeHtml(r.finishPos);
+
+  if (r.isException) {
+    switch (r.exceptionType) {
+      case 'cancel':
+        rowClass = 'row-cancel';
+        badge = '<span class="badge badge-cancel">取消</span>';
+        break;
+      case 'exclude':
+        rowClass = 'row-exclude';
+        badge = '<span class="badge badge-exclude">除外</span>';
+        break;
+      case 'dnf':
+        rowClass = 'row-dnf';
+        badge = '<span class="badge badge-dnf">競走中止</span>';
+        break;
+      case 'disqualify':
+        rowClass = 'row-disqualify';
+        badge = '<span class="badge badge-disqualify">失格</span>';
+        break;
+    }
+  }
+
+  if (r.isDeadHeat) {
+    badge += '<span class="badge badge-deadheat">同着</span>';
+  }
+
+  // コーナー通過順の表示
+  let cornerDisplay = r.cornerOrder
+    ? escapeHtml(r.cornerOrder)
+    : '<span style="color:var(--text-muted)">—</span>';
+
+  // 人気
+  let popularityDisplay = r.popularity || '<span style="color:var(--text-muted)">—</span>';
+
+  return `<tr class="${rowClass}">
+    <td><strong>${finishDisplay}</strong>${badge}</td>
+    <td>${escapeHtml(r.umaban) || '—'}</td>
+    <td>${escapeHtml(r.umamei) || '—'}</td>
+    <td>${cornerDisplay}</td>
+    <td>${popularityDisplay}</td>
+  </tr>`;
+}
+
+// ============================================
+// CSV出力
+// ============================================
+function exportCSV() {
+  if (!currentResults || currentResults.results.length === 0) return;
+
+  const header = ['着順', '馬番', '馬名', 'コーナー通過順', '人気'];
+  const rows = currentResults.results.map(r => [
+    r.finishPos + (r.isDeadHeat ? '(同着)' : ''),
+    r.umaban,
+    r.umamei,
+    r.cornerOrder,
+    r.popularity
+  ]);
+
+  const csv = [header, ...rows]
+    .map(row => row.map(cell => {
+      const s = String(cell || '');
+      // CSVエスケープ: ダブルクォートで囲み、内部のダブルクォートをエスケープ
+      return `"${s.replace(/"/g, '""')}"`;
+    }).join(','))
+    .join('\r\n');
+
+  // BOM付きでダウンロード（Excel対応）
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'race_results.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============================================
+// クリップボードコピー
+// ============================================
+function copyToClipboard() {
+  if (!currentResults || currentResults.results.length === 0) return;
+
+  const header = '着順\t馬番\t馬名\tコーナー通過順\t人気';
+  const rows = currentResults.results.map(r =>
+    `${r.finishPos}${r.isDeadHeat ? '(同着)' : ''}\t${r.umaban}\t${r.umamei}\t${r.cornerOrder}\t${r.popularity}`
+  );
+  const text = [header, ...rows].join('\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const original = btn.textContent;
+    btn.textContent = 'コピーしました';
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  }).catch(() => {
+    alert('コピーに失敗しました。');
+  });
+}
+
+// ============================================
+// クリア
+// ============================================
+function clearAll() {
+  pasteArea.value = '';
+  fileInput.value = '';
+  currentResults = null;
+  document.getElementById('warningsCard').classList.add('hidden');
+  document.getElementById('raceInfoCard').classList.add('hidden');
+  document.getElementById('resultsCard').classList.add('hidden');
+  document.getElementById('exportButtons').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+}
+
+// ============================================
+// ユーティリティ
+// ============================================
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+</body>
+</html>
