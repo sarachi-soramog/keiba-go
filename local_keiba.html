@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>地方競馬予想 v3</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="地方PREDICTOR">
+<meta name="theme-color" content="#07090f">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&display=swap');
+:root {
+  --bg:#07090f;--surface:#0d1117;--surface2:#131a24;--surface3:#1a2433;
+  --border:#1e2d42;--border2:#2a3f5a;
+  --text:#f0f6ff;--text-dim:#b0c8e8;--text-mid:#d0e4f8;
+  --accent:#e8a040;--accent2:#f0c070;--accent-dim:#e8a04018;
+  --green:#00f090;--green-dim:#00f09015;--green-dark:#009955;
+  --red:#ff4757;--gold:#ffd060;--orange:#ff7c3b;--warn:#ffb347;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+header{background:linear-gradient(180deg,#100a04,#07090f);border-bottom:1px solid var(--border);padding:0 14px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent);letter-spacing:3px}
+.logo-sub{font-size:9px;color:var(--text-dim);letter-spacing:2px;font-family:'JetBrains Mono',monospace}
+.calc-hbtn{background:var(--accent);color:#000;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:12px;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;transition:all .2s}
+.calc-hbtn:active{transform:scale(.95);opacity:.85}
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:190;overflow-x:auto}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 14px;font-size:11px;font-weight:700;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:10px;padding:14px}
+.card-title{font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+label{font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;letter-spacing:.5px}
+.sel,.num-in{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:13px;font-weight:700;padding:8px 10px;border-radius:8px;outline:none;text-align:center;transition:border-color .2s;font-family:'JetBrains Mono',monospace;-webkit-appearance:none;cursor:pointer}
+.sel:focus,.num-in:focus{border-color:var(--accent)}
+.tog-group{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.tog{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);font-size:12px;cursor:pointer;transition:all .2s;background:transparent;color:var(--text-dim);font-family:'Noto Sans JP',sans-serif}
+.tog.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+.hint{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text-dim);line-height:2;margin-bottom:12px}
+.hint b{color:var(--text);font-weight:700}
+.sn{color:var(--accent);font-weight:900;font-family:'JetBrains Mono',monospace}
+.json-area{width:100%;min-height:110px;background:var(--bg);border:1px dashed var(--border2);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px;padding:10px;border-radius:8px;outline:none;resize:vertical;line-height:1.6;transition:border-color .2s}
+.json-area:focus{border-color:var(--accent);border-style:solid}
+.load-btn{width:100%;background:linear-gradient(135deg,#5a3010,var(--accent));color:#000;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:14px;border:none;border-radius:10px;padding:12px;cursor:pointer;transition:all .2s;letter-spacing:1px;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.load-btn:active{transform:scale(.97)}
+.load-btn:disabled{background:var(--surface3);color:var(--text-dim);cursor:not-allowed}
+.txt-in{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text);font-size:13px;padding:8px 10px;border-radius:8px;outline:none;transition:border-color .2s;font-family:'Noto Sans JP',sans-serif}
+.txt-in:focus{border-color:var(--accent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent2);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700}
+.chip-g{background:#ffd06018;border-color:var(--gold);color:var(--gold)}
+.course-box{background:var(--green-dim);border:1px solid var(--green-dark);border-radius:8px;padding:10px 12px;margin-top:10px}
+.ci-row{display:flex;justify-content:space-between;padding:2px 0;font-size:11px;color:var(--text-mid)}
+.ci-val{color:var(--green);font-weight:700;font-family:'JetBrains Mono',monospace}
+.horse-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.horse-head,.horse-row{display:grid;grid-template-columns:24px 1fr 46px 40px 40px 52px 36px 36px 36px 36px 38px 1fr;gap:4px;align-items:center;min-width:680px}
+.horse-head{padding:4px 2px 8px;border-bottom:1px solid var(--border);margin-bottom:2px}
+.horse-row{padding:6px 2px;border-bottom:1px solid var(--border)}
+.horse-row:last-child{border-bottom:none}
+.hcol{font-size:9px;color:var(--text-dim);text-align:center;line-height:1.3}
+.hnum{width:22px;height:22px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text-dim);flex-shrink:0;transition:all .3s;font-family:'JetBrains Mono',monospace}
+.hnum.on{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.h-name{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:11px;padding:4px 5px;border-radius:5px;outline:none;font-family:'Noto Sans JP',sans-serif}
+.h-name:focus{border-color:var(--accent)}
+.h-val{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--accent);font-size:11px;padding:4px 2px;border-radius:5px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace}
+.h-val:focus{border-color:var(--accent)}
+.h-val.ai{border-color:#e8a04040;background:var(--accent-dim)}
+/* hide number input spinners */
+.h-val::-webkit-outer-spin-button,.h-val::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.h-val[type=number]{-moz-appearance:textfield}
+.h-sel{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:10px;padding:4px 2px;border-radius:5px;outline:none;text-align:center;-webkit-appearance:none;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+.h-sel.ai{border-color:#e8a04040;background:var(--accent-dim)}
+.h-step{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:700;padding:4px 2px;border-radius:5px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace;-webkit-appearance:none}
+.h-step::-webkit-outer-spin-button,.h-step::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.h-step[type=number]{-moz-appearance:textfield}
+.h-step.up{color:var(--green);border-color:#00f09050}
+.h-step.down{color:var(--red);border-color:#ff475750}
+.sbo-cell{background:var(--surface2);border:1px solid var(--border2);border-radius:5px;font-size:11px;font-weight:700;color:var(--gold);text-align:center;padding:4px 2px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center}
+.sbo-cell.low{color:var(--red)}
+.cls-cell{font-size:11px;font-weight:700;text-align:center;padding:4px 2px;border-radius:5px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;justify-content:center}
+.cls-up{color:var(--green);background:#00f09015}.cls-dn{color:var(--red);background:#ff475715}.cls-eq{color:var(--text-dim);background:var(--surface2)}
+.jok-cell{font-size:12px;font-weight:900;text-align:center;padding:4px 2px}
+.jok-ok{color:var(--green)}.jok-ng{color:var(--text-dim)}
+.res-row{display:grid;grid-template-columns:24px 1fr 60px 48px 36px;gap:6px;align-items:center;padding:9px 3px;border-bottom:1px solid var(--border)}
+.res-row:last-child{border-bottom:none}
+.rbadge{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.r1{background:var(--gold);color:#000}.r2{background:#bdbdbd;color:#000}.r3{background:#a1714a;color:#fff}
+.rn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim)}
+.sbar{height:2px;background:var(--border);border-radius:1px;margin-top:3px;overflow:hidden}
+.sfill{height:100%;border-radius:1px;background:linear-gradient(90deg,#5a3010,var(--accent));transition:width .8s cubic-bezier(.4,0,.2,1)}
+.sval{font-size:13px;font-weight:700;text-align:right;font-family:'JetBrains Mono',monospace}
+.sval.top{color:var(--accent)}
+.mark{font-size:16px;font-weight:900;text-align:center}
+.mk0{color:var(--gold)}.mk1{color:var(--red)}.mk2{color:#e8b870}.mk3{color:var(--green)}
+.res-sub{font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-top:2px}
+.ok-tag{font-size:8px;background:var(--green);color:#000;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700;vertical-align:middle}
+.penalty-tag{font-size:8px;background:var(--red);color:#fff;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700;vertical-align:middle}
+.jok-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.jok-venue-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px}
+.jok-venue-title{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:8px}
+.jok-list{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.jok-tag{background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent2);border-radius:4px;padding:2px 8px;font-size:11px;display:flex;align-items:center;gap:4px}
+.jok-tag button{background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0;line-height:1}
+.jok-add-row{display:flex;gap:6px}
+.jok-add-input{flex:1;background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:12px;padding:6px 8px;border-radius:6px;outline:none}
+.jok-add-input:focus{border-color:var(--accent)}
+.jok-add-btn{background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-weight:700;font-size:11px;white-space:nowrap}
+.settings-table{width:100%;border-collapse:collapse;font-size:11px}
+.settings-table th{background:var(--surface2);color:var(--text-dim);padding:6px 4px;text-align:center;font-size:9px;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.settings-table td{padding:5px 3px;border-bottom:1px solid var(--border);text-align:center;color:var(--text-mid)}
+.settings-table td:first-child{text-align:left;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:10px}
+.settings-table tr:last-child td{border-bottom:none}
+.st-in{width:60px;background:var(--bg);border:1px solid var(--border2);color:var(--accent);font-size:11px;padding:3px 4px;border-radius:4px;outline:none;text-align:center;font-family:'JetBrains Mono',monospace}
+.btn-sub{background:transparent;border:1px solid var(--border2);color:var(--text-dim);font-family:'Noto Sans JP',sans-serif;font-size:10px;padding:5px 11px;border-radius:6px;cursor:pointer}
+.status{border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.8;transition:all .3s;margin-top:8px;display:none}
+.status.show{display:block}
+.s-done{background:#001a0d;color:var(--green);border:1px solid var(--green)}
+.s-error{background:#1a0007;color:var(--red);border:1px solid var(--red)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent);color:#000;padding:9px 22px;border-radius:22px;font-weight:700;font-size:13px;z-index:999;transition:transform .3s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* ── RACE TABS ── */
+.race-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.rtab{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:11px;cursor:pointer;background:transparent;color:var(--text-dim);font-family:'Noto Sans JP',sans-serif;font-weight:700;transition:all .2s}
+.rtab.active{background:var(--accent);color:#000;border-color:var(--accent)}
+/* ── HEADER PDF/CSV ── */
+.header-right{display:flex;align-items:center}
+.pdf-hbtn{background:var(--surface3);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:11px;border:1px solid var(--border2);border-radius:8px;padding:7px 10px;cursor:pointer;transition:all .2s}
+.pdf-hbtn:active{transform:scale(.95);opacity:.85}
+/* ── PDF PRINT STYLES ── */
+@media print{
+  *{-webkit-print-color-adjust:exact;color-adjust:exact}
+  body{background:#fff!important;color:#000!important}
+  body>*:not(#pdf-modal){display:none!important}
+  .toast,.pdf-modal-footer{display:none!important}
+  #pdf-modal{display:block!important;position:static!important;background:transparent!important;overflow:visible!important}
+  .pdf-content{margin:0!important;padding:0!important;background:#fff!important}
+  .pdf-page{page-break-after:always;page-break-inside:avoid}
+  .pdf-page:last-child{page-break-after:auto}
+  @page{margin:8mm;size:A4 landscape}
+}
+.pdf-modal{display:none;position:fixed;inset:0;background:#0009;z-index:500;overflow-y:auto}
+.pdf-modal.show{display:block}
+.pdf-content{background:#fff;color:#000;max-width:none;margin:12px;padding:16px;font-family:'Noto Sans JP',sans-serif;border-radius:8px}
+.pdf-page{margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #333}
+.pdf-page:last-child{border-bottom:none}
+.pdf-race-header{font-size:13px;font-weight:900;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:8px;color:#000}
+.pdf-tbl{width:100%;border-collapse:collapse;font-size:9px}
+.pdf-tbl th{background:#e8e8e8;border:1px solid #bbb;padding:3px 5px;text-align:center;font-size:8px;font-weight:700;color:#333;white-space:nowrap}
+.pdf-tbl td{border:1px solid #ddd;padding:3px 5px;text-align:center;color:#000;font-size:9px;white-space:nowrap}
+.pdf-tbl td.pname{text-align:left;min-width:90px}
+.pdf-tbl tr.thick-below td{border-bottom:3px solid #555!important}
+.pdf-modal-footer{display:flex;gap:10px;justify-content:center;margin-top:16px;padding:10px;background:var(--surface);position:sticky;bottom:0}
+.pdf-print-btn{background:var(--accent);color:#000;font-weight:900;font-size:14px;border:none;border-radius:8px;padding:10px 24px;cursor:pointer}
+.pdf-close-btn{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-size:13px;border-radius:8px;padding:10px 20px;cursor:pointer}
+/* ── 騎手OKチェック ── */
+.jok-check-cell{display:flex;align-items:center;justify-content:center}
+.jok-check{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">🏇 地方 PREDICTOR</div>
+    <div class="logo-sub">v3 6レース対応</div>
+  </div>
+  <div class="header-right">
+    <button class="pdf-hbtn" onclick="showPdfModal()">📄 PDF</button>
+    <button class="pdf-hbtn" onclick="exportCSV()" style="background:var(--green-dark);margin-left:4px">📊 CSV</button>
+    <button class="calc-hbtn" onclick="calculate()" style="margin-left:4px">⚡ 計算</button>
+  </div>
+</header>
+
+<div class="tabs" id="tab-bar">
+  <div class="tab active" onclick="switchTab('import')">① 取込</div>
+  <div class="tab" onclick="switchTab('input')">② 入力</div>
+  <div class="tab" onclick="switchTab('result')">③ 結果</div>
+  <div class="tab" onclick="switchTab('jockey')">騎手設定</div>
+  <div class="tab" onclick="switchTab('config')">⚙️ 設定</div>
+</div>
+
+<!-- ══ IMPORT ══ -->
+<div class="panel active" id="panel-import">
+  <div class="card">
+    <div class="card-title">📥 データ取込</div>
+    <!-- レースタブ -->
+    <div class="race-tabs-wrap" style="margin-bottom:10px">
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">取込先レース</div>
+      <div class="race-tabs" id="import-race-tabs"></div>
+    </div>
+
+    <!-- JSON貼付 -->
+    <div class="hint">
+      <span class="sn">①</span> <b>Claudeのチャット</b>にURLを貼って送信<br>
+      <span class="sn">②</span> ClaudeがJSONを返したら<b>下の枠に貼り付け</b><br>
+      <span class="sn">③</span> 「<b>読み込む</b>」→「② 入力」タブで補正を入力して<b>計算</b>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+      <button onclick="clearJsonArea()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text-dim);font-size:13px;font-weight:700;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif">🗑️ クリア</button>
+    </div>
+    <textarea class="json-area" id="json-paste" placeholder='{"race_info":{...},"horses":[...]}' oninput="onJsonPaste()"></textarea>
+    <button class="load-btn" id="load-btn" onclick="loadJson()" disabled>📥 このレースに読み込む</button>
+    <div class="status" id="import-status"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span>📊 CSV取込</span>
+      <span style="font-size:10px;color:var(--text-dim)">出走表CSV／出力済み結果CSVの両対応</span>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:10px;padding:6px 8px;background:var(--surface2);border-radius:6px;line-height:1.8">
+      形式①: <b style="color:var(--text)">馬番,馬名,SP,先行,末脚,騎手名,今C,前C</b>（今C・前Cは省略可、数値はCLASS番号）<br>
+      形式②: ヘッダーに「📊 CSV」で<b style="color:var(--text)">出力したCSVをそのまま貼り付け</b>（各レースへ自動復元。騎手名・前Cなど一部項目は概算になります）
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+      <button onclick="clearCsvArea()" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text-dim);font-size:13px;font-weight:700;padding:8px 18px;border-radius:8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif">🗑️ クリア</button>
+    </div>
+    <textarea class="json-area" id="csv-paste" placeholder="1,馬名A,50,10,10,騎手名A&#10;2,馬名B,48,9,11,騎手名B" oninput="onCsvPaste()" style="min-height:100px"></textarea>
+    <button class="load-btn" id="csv-load-btn" onclick="loadCsv()" disabled style="background:linear-gradient(135deg,#004d20,#00a040)">📊 CSVから読み込む</button>
+    <div class="status" id="csv-status"></div>
+  </div>
+</div>
+
+<!-- ══ INPUT ══ -->
+<div class="panel" id="panel-input">
+  <div class="card">
+    <div class="card-title">
+      <span>🏟️ レース設定</span>
+      <span id="ck-badge" style="font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace"></span>
+    </div>
+    <!-- レースタブ -->
+    <div class="race-tabs-wrap" style="margin-bottom:12px">
+      <div class="race-tabs" id="input-race-tabs"></div>
+    </div>
+    <div id="race-chips" class="chips" style="display:none"></div>
+    <div class="grid2" style="margin-bottom:10px">
+      <div>
+        <label>競馬場</label>
+        <select class="sel" id="venue" onchange="onCourseChange()" style="font-size:12px">
+          <option>大井</option><option>浦和</option><option>川崎</option><option>船橋</option>
+          <option>門別</option><option>盛岡</option><option>水沢</option><option>金沢</option>
+          <option>笠松</option><option>名古屋</option><option>園田</option><option>姫路</option>
+          <option>高知</option><option>佐賀</option>
+        </select>
+      </div>
+      <div>
+        <label>馬場状態</label>
+        <div class="tog-group">
+          <div class="tog on" id="tog-good" onclick="setBaba('良')">良</div>
+          <div class="tog" id="tog-yaya" onclick="setBaba('稍')">稍</div>
+          <div class="tog" id="tog-heavy" onclick="setBaba('重')">重</div>
+          <div class="tog" id="tog-bad" onclick="setBaba('不良')">不良</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px">
+      <div>
+        <label>距離カテゴリ</label>
+        <div class="tog-group">
+          <div class="tog" id="tog-shou" onclick="setDist('少')">少<br><span style="font-size:9px">〜1000</span></div>
+          <div class="tog" id="tog-tan" onclick="setDist('短')">短<br><span style="font-size:9px">〜1400</span></div>
+          <div class="tog on" id="tog-chu" onclick="setDist('中')">中<br><span style="font-size:9px">〜1800</span></div>
+          <div class="tog" id="tog-naga" onclick="setDist('長')">長<br><span style="font-size:9px">1801〜</span></div>
+        </div>
+      </div>
+      <div>
+        <label>今回クラス</label>
+        <select class="sel" id="race-class" onchange="syncAllCurrentClass()" style="font-size:12px">
+          <option value="1">C3</option><option value="2">C2</option><option value="3">C1</option>
+          <option value="4">B3</option><option value="5">B2</option><option value="6">B1</option>
+          <option value="7">A2</option><option value="8">A1</option><option value="9">S</option><option value="10">JRA</option>
+        </select>
+      </div>
+    </div>
+    <div id="course-info"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <span>🐎 出走馬データ</span>
+      <button class="btn-sub" onclick="clearHorses()">クリア</button>
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:6px;line-height:1.8">
+      <b style="color:var(--text)">前日</b>：1〜9（5=基準）　<b style="color:var(--text)">SBO</b>・<b style="color:var(--text)">C補正</b>：自動　<b style="color:var(--green)">騎手OK</b>：手動チェック（「騎手設定」タブの一覧で確認）　<b style="color:var(--red)">SBO&lt;200</b>：ペナルティ
+    </div>
+    <div class="horse-scroll">
+      <div class="horse-head">
+        <div></div>
+        <div class="hcol">馬名</div>
+        <div class="hcol">SP</div>
+        <div class="hcol">先行</div>
+        <div class="hcol">末脚</div>
+        <div class="hcol">SBO<br>自動</div>
+        <div class="hcol">今C</div>
+        <div class="hcol">前C</div>
+        <div class="hcol">人気</div>
+        <div class="hcol">前日</div>
+        <div class="hcol">OK<br>手動</div>
+        <div class="hcol">騎手名</div>
+      </div>
+      <div id="horse-rows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULT ══ -->
+<div class="panel" id="panel-result">
+  <div class="card">
+    <div class="card-title">
+      <span>🏆 予想結果</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <div class="race-tabs" id="result-race-tabs" style="margin-bottom:0;flex-wrap:nowrap;gap:4px"></div>
+      </div>
+    </div>
+    <div id="result-area"><div style="color:var(--text-dim);text-align:center;padding:32px;font-size:13px">⚡ 計算ボタンを押してください</div></div>
+  </div>
+</div>
+
+<!-- ══ JOCKEY ══ -->
+<div class="panel" id="panel-jockey">
+  <div class="card">
+    <div class="card-title">
+      <span>👤 場別・上位騎手設定</span>
+      <button class="btn-sub" onclick="saveJockeys()">保存</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px">この一覧は参考表示専用です。計算には使われません。②入力タブで手動確認のうえ「OK」チェックを入れてください。</div>
+    <div id="jockey-editor"></div>
+  </div>
+</div>
+
+<!-- ══ CONFIG ══ -->
+<div class="panel" id="panel-config">
+  <!-- 計算係数 -->
+  <div class="card">
+    <div class="card-title">⚙️ 計算係数（v3）</div>
+    <div class="grid2" style="gap:10px;margin-bottom:10px">
+      <div><label>SBO倍率（B75）</label><input class="num-in" type="number" id="coef-sbo-mul" value="1.15" step="0.01"></div>
+      <div><label>RC_L倍率（B76）</label><input class="num-in" type="number" id="coef-rc-mul" value="6.5" step="0.1"></div>
+      <div><label>騎手OK加点（B77）</label><input class="num-in" type="number" id="coef-jok" value="10" step="1"></div>
+      <div><label>クラス補正係数（L2）</label><input class="num-in" type="number" id="coef-cls" value="5" step="1"></div>
+      <div><label>前日補正係数（B8）</label><input class="num-in" type="number" id="coef-zen" value="0.45" step="0.01"></div>
+      <div><label>当日補正係数（B9）</label><input class="num-in" type="number" id="coef-today" value="0.65" step="0.01"></div>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">人気補正（B78〜B81）</div>
+    <div class="grid2" style="gap:8px;margin-bottom:10px">
+      <div><label>1人気ボーナス</label><input class="num-in" type="number" id="pop1" value="8" step="1"></div>
+      <div><label>2人気ボーナス</label><input class="num-in" type="number" id="pop2" value="5" step="1"></div>
+      <div><label>3人気ボーナス</label><input class="num-in" type="number" id="pop3" value="3" step="1"></div>
+      <div><label>4人気ボーナス</label><input class="num-in" type="number" id="pop4" value="1" step="1"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="grid2" style="gap:8px;margin-bottom:10px">
+      <div><label>SBO下限（B82）</label><input class="num-in" type="number" id="sbo-limit" value="200" step="1"></div>
+      <div><label>SBO上位N頭（B11）</label><input class="num-in" type="number" id="rc-top-n" value="3" step="1"></div>
+      <div><label>短距離逃げ補正係数（B84）</label><input class="num-in" type="number" id="sprint-coef" value="0.6" step="0.1"></div>
+      <div><label>短距離逃げ補正ON(1/0)</label><input class="num-in" type="number" id="sprint-on" value="1" min="0" max="1"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="grid3" style="gap:8px">
+      <div><label>救済開始順位</label><input class="num-in" type="number" id="rescue-s" value="6"></div>
+      <div><label>救済上限順位</label><input class="num-in" type="number" id="rescue-e" value="8"></div>
+      <div><label>救済ボーナス</label><input class="num-in" type="number" id="rescue-b" value="0" step="0.1"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 RC_L係数（場別 B列実効値）</div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">川崎設定（BASE v8より）</div>
+    <div class="grid2" style="gap:8px">
+      <div><label>RC_L①</label><input class="num-in" type="number" id="rcl1" value="1.43" step="0.01"></div>
+      <div><label>RC_L②</label><input class="num-in" type="number" id="rcl2" value="0.84" step="0.01"></div>
+      <div><label>RC_L③</label><input class="num-in" type="number" id="rcl3" value="1.32" step="0.01"></div>
+      <div><label>RC_L④</label><input class="num-in" type="number" id="rcl4" value="1.235" step="0.01"></div>
+      <div><label>RC_L⑤</label><input class="num-in" type="number" id="rcl5" value="1.1" step="0.01"></div>
+      <div><label>RC_L⑥</label><input class="num-in" type="number" id="rcl6" value="1.3" step="0.01"></div>
+      <div><label>RC_L⑦</label><input class="num-in" type="number" id="rcl7" value="1.21" step="0.01"></div>
+      <div><label>RC_L⑧</label><input class="num-in" type="number" id="rcl8" value="1.0" step="0.01"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 コースマスター（先行・末脚係数）</div>
+    <div class="scroll-x">
+      <table class="settings-table">
+        <thead><tr><th style="text-align:left">場</th><th>距離</th><th>先行</th><th>末脚</th></tr></thead>
+        <tbody id="cm-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PDF Modal -->
+<div class="pdf-modal" id="pdf-modal">
+  <div class="pdf-content" id="pdf-content-area"></div>
+  <div class="pdf-modal-footer">
+    <button class="pdf-print-btn" onclick="printPdf()">🖨️ 印刷 / PDF保存</button>
+    <button class="pdf-close-btn" onclick="closePdfModal()">閉じる</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ CONSTANTS ══
+const N=16, NRACES=6;
+const CLASS_ORDER=["C3","C2","C1","B3","B2","B1","A2","A1","S","JRA"];
+const CLASS_VAL={"C3":1,"C2":2,"C1":3,"B3":4,"B2":5,"B1":6,"A2":7,"A1":8,"S":9,"JRA":10};
+const VENUES=['大井','浦和','川崎','船橋','門別','盛岡','水沢','金沢','笠松','名古屋','園田','姫路','高知','佐賀'];
+const DIST_CATS=['少','短','中','長'];
+
+// ══ COURSE MASTER ══
+const DEFAULT_CM={
+  "大井_少":{sen:1.05,sue:1.05},"大井_短":{sen:1.05,sue:1.05},"大井_中":{sen:1.05,sue:1.05},"大井_長":{sen:1.05,sue:1.05},
+  "浦和_少":{sen:1.05,sue:1.05},"浦和_短":{sen:1.05,sue:1.05},"浦和_中":{sen:1.05,sue:1.05},"浦和_長":{sen:1.05,sue:1.05},
+  "川崎_少":{sen:1.1,sue:0.95},"川崎_短":{sen:1.03,sue:1.02},"川崎_中":{sen:0.99,sue:1.07},"川崎_長":{sen:0.92,sue:1.15},
+  "船橋_少":{sen:1.05,sue:1.05},"船橋_短":{sen:1.03,sue:1.03},"船橋_中":{sen:0.97,sue:1.1},"船橋_長":{sen:0.94,sue:1.15},
+  "門別_少":{sen:1.05,sue:1.05},"門別_短":{sen:1.05,sue:1.05},"門別_中":{sen:1.13,sue:0.94},"門別_長":{sen:1.02,sue:1.08},
+  "盛岡_少":{sen:0.98,sue:1.08},"盛岡_短":{sen:0.95,sue:1.12},"盛岡_中":{sen:0.9,sue:1.15},"盛岡_長":{sen:0.92,sue:1.15},
+  "水沢_少":{sen:1.06,sue:1.02},"水沢_短":{sen:1.08,sue:0.98},"水沢_中":{sen:1.05,sue:1},"水沢_長":{sen:1,sue:1.05},
+  "金沢_少":{sen:1.15,sue:1},"金沢_短":{sen:1.15,sue:1},"金沢_中":{sen:1.2,sue:0.95},"金沢_長":{sen:1.15,sue:1},
+  "笠松_少":{sen:1.12,sue:0.95},"笠松_短":{sen:1.12,sue:0.95},"笠松_中":{sen:1.15,sue:0.93},"笠松_長":{sen:1.15,sue:0.93},
+  "名古屋_少":{sen:1.1,sue:0.98},"名古屋_短":{sen:1.06,sue:1.02},"名古屋_中":{sen:1.06,sue:1.02},"名古屋_長":{sen:0.98,sue:1.08},
+  "園田_少":{sen:1.25,sue:0.9},"園田_短":{sen:1.25,sue:0.9},"園田_中":{sen:1.2,sue:1.1},"園田_長":{sen:1,sue:1},
+  "姫路_少":{sen:0.95,sue:1.15},"姫路_短":{sen:0.95,sue:1.15},"姫路_中":{sen:1,sue:1.1},"姫路_長":{sen:0.9,sue:1.2},
+  "高知_少":{sen:1.15,sue:1.05},"高知_短":{sen:1.15,sue:1.05},"高知_中":{sen:1.15,sue:1.05},"高知_長":{sen:1.15,sue:1.05},
+  "佐賀_少":{sen:1.2,sue:0.95},"佐賀_短":{sen:1.2,sue:0.95},"佐賀_中":{sen:1.2,sue:0.95},"佐賀_長":{sen:1.2,sue:0.95},
+};
+
+// ══ STATE ══
+let CM={}, JOCKEYS={};
+let baba='良', dist='中';
+let currentRace=0;
+// 5レース分のレース状態を管理
+let raceStates=Array.from({length:NRACES},()=>({
+  baba:'良', dist:'中', venue:'大井', raceClass:'4',
+  horses:[], chips:[]
+}));
+let raceResults=Array(NRACES).fill(null);
+
+// ══ INIT ══
+function init(){
+  loadCM(); loadJockeys(); buildHorseRows(); updateRaceTabs();
+  onCourseChange(); renderCMTable(); renderJockeyEditor();
+}
+
+// ══ RACE TABS ══
+function updateRaceTabs(){
+  ['import','input','result'].forEach(panel=>{
+    const el=document.getElementById(`${panel}-race-tabs`);
+    if(!el) return;
+    el.innerHTML=Array.from({length:NRACES},(_,i)=>`
+      <div class="rtab ${i===currentRace?'active':''}" onclick="switchRace(${i})">R${i+1}</div>
+    `).join('');
+  });
+}
+
+function switchRace(idx){
+  saveCurrentRaceState();
+  currentRace=idx;
+  loadRaceState();
+  updateRaceTabs();
+}
+
+function saveCurrentRaceState(){
+  const s=raceStates[currentRace];
+  s.baba=baba; s.dist=dist;
+  s.venue=document.getElementById('venue').value;
+  s.raceClass=document.getElementById('race-class').value;
+  s.chips=document.getElementById('race-chips').innerHTML;
+  s.chipsVisible=document.getElementById('race-chips').style.display;
+  const horses=[];
+  for(let i=1;i<=N;i++){
+    horses.push({
+      n: document.getElementById(`h${i}n`)?.value||'',
+      sp: document.getElementById(`h${i}sp`)?.value||'',
+      se: document.getElementById(`h${i}se`)?.value||'',
+      su: document.getElementById(`h${i}su`)?.value||'',
+      pop: document.getElementById(`h${i}pop`)?.value||'',
+      zen: document.getElementById(`h${i}zen`)?.value||'',
+      jok: document.getElementById(`h${i}jok`)?.value||'',
+      jokok: document.getElementById(`h${i}jokok`)?.checked||false,
+      cc: document.getElementById(`h${i}cc`)?.value||'4',
+      pc: document.getElementById(`h${i}pc`)?.value||'4',
+    });
+  }
+  s.horses=horses;
+}
+
+function loadRaceState(){
+  const s=raceStates[currentRace];
+  baba=s.baba||'良'; dist=s.dist||'中';
+  // set toggles
+  ['良','稍','重','不良'].forEach((v,i)=>{
+    const ids=['tog-good','tog-yaya','tog-heavy','tog-bad'];
+    document.getElementById(ids[i]).classList.toggle('on',v===baba);
+  });
+  const dmap={少:'tog-shou',短:'tog-tan',中:'tog-chu',長:'tog-naga'};
+  Object.keys(dmap).forEach(v=>document.getElementById(dmap[v]).classList.toggle('on',v===dist));
+  const venEl=document.getElementById('venue');
+  for(let o of venEl.options){ if(o.value===s.venue){venEl.value=s.venue;break;} }
+  document.getElementById('race-class').value=s.raceClass||'4';
+  const chips=document.getElementById('race-chips');
+  chips.innerHTML=s.chips||''; chips.style.display=s.chipsVisible||'none';
+  (s.horses||[]).forEach((h,idx)=>{
+    const i=idx+1;
+    const set=(f,v)=>{const el=document.getElementById(`h${i}${f}`);if(el)el.value=v;};
+    set('n',h.n); set('sp',h.sp); set('se',h.se); set('su',h.su);
+    set('pop',h.pop); set('zen',h.zen); set('jok',h.jok);
+    set('cc',h.cc||'4'); set('pc',h.pc||'4');
+    updateSBO(i); updateJockeyCheck(i,h.jokok); updateHNum(i);
+    if(h.zen){
+      const el=document.getElementById(`h${i}zen`);
+      const v=parseInt(h.zen)||5;
+      el.classList.remove('up','down');
+      if(v>5) el.classList.add('up'); else if(v<5) el.classList.add('down');
+    }
+  });
+  onCourseChange();
+}
+
+// ══ COURSE MASTER ══
+function loadCM(){
+  try{ const s=localStorage.getItem('local_cm_v3'); CM=s?JSON.parse(s):{...DEFAULT_CM}; }
+  catch(e){ CM={...DEFAULT_CM}; }
+}
+function saveCM(){ localStorage.setItem('local_cm_v3',JSON.stringify(CM)); }
+
+// ══ JOCKEYS ══
+const DEFAULT_JOCKEYS={
+  "大井":["矢野貴","笹川翼","本田重","御神訓","野畑凌","石川倭","和田譲","町田直","藤本現","張田昂","西啓太","山中悠希","吉原寛人","山崎誠士","川島正太郎"],
+  "浦和":["矢野貴","笹川翼","本田重","御神訓","野畑凌","石川倭","和田譲","町田直","藤本現","張田昂"],
+  "川崎":["町田直","御神訓","野畑凌","笹川翼","石川倭","藤本現","張田昂","西啓太","本田重","和田譲"],
+  "船橋":["本田重","笹川翼","町田直","御神訓","石川倭","和田譲","藤本現"],
+  "門別":["石川倭","落合玄","阿部龍","服部茂","小野楓","宮内勇樹","松井伸","岩橋勇","山本咲希到"],
+  "盛岡":["山本聡哉","高松亮","山本政聡","菅原辰徳","高橋悠里","塚本涼","及川裕一","南郷家全"],
+  "水沢":["山本聡哉","高松亮","村上忍","菅原辰徳","鈴木祐","山本聡紀"],
+  "金沢":["青柳正","吉田晃","甲賀弘","栗原大","田知弘","魚住謙","加藤翔","葛山晃","平瀬城"],
+  "笠松":["下原理","吉村智","田野豊","笹田知","廣瀬航","川原正","大山龍太郎","杉浦健"],
+  "名古屋":["下原理","吉村智","田野豊","笹田知","廣瀬航","川原正","大山龍太郎"],
+  "園田":["小牧太","吉村智","廣瀬航","田野豊","下原理","笹田知","鴨宮祥","長谷駿"],
+  "姫路":["小牧太","吉村智","川原正","笹田知","廣瀬航","田野豊","大山龍太郎","杉浦健"],
+  "高知":["仮高知01","仮高知02","仮高知03"],
+  "佐賀":["山口勲","飛田愛斗","石川慎将","田中直","金山昇馬","長谷川蓮"],
+};
+function loadJockeys(){
+  try{ const s=localStorage.getItem('local_jockeys_v3'); JOCKEYS=s?JSON.parse(s):JSON.parse(JSON.stringify(DEFAULT_JOCKEYS)); }
+  catch(e){ JOCKEYS=JSON.parse(JSON.stringify(DEFAULT_JOCKEYS)); }
+}
+function saveJockeys(){ localStorage.setItem('local_jockeys_v3',JSON.stringify(JOCKEYS)); showToast('騎手リストを保存しました'); }
+
+// ══ HORSE ROWS ══
+function buildHorseRows(){
+  const c=document.getElementById('horse-rows'); c.innerHTML='';
+  for(let i=1;i<=N;i++){
+    const r=document.createElement('div'); r.className='horse-row';
+    const clsOpts=CLASS_ORDER.map(c=>`<option value="${CLASS_VAL[c]}">${c}</option>`).join('');
+    r.innerHTML=`
+      <div class="hnum" id="hn${i}">${i}</div>
+      <input class="h-name" type="text" placeholder="馬名" id="h${i}n" readonly>
+      <input class="h-val" type="number" placeholder="—" id="h${i}sp" step="0.1" min="0" oninput="updateSBO(${i})" onkeydown="handleNavKey(event,${i})">
+      <input class="h-val" type="number" placeholder="—" id="h${i}se" step="0.1" min="0" oninput="updateSBO(${i})" onkeydown="handleNavKey(event,${i})">
+      <input class="h-val" type="number" placeholder="—" id="h${i}su" step="0.1" min="0" oninput="updateSBO(${i})" onkeydown="handleNavKey(event,${i})">
+      <div class="sbo-cell" id="h${i}sbo">—</div>
+      <select class="h-sel" id="h${i}cc" onchange="updateClassDiff(${i})">${clsOpts}</select>
+      <select class="h-sel" id="h${i}pc" onchange="updateClassDiff(${i})">${clsOpts}</select>
+      <input class="h-val" type="number" placeholder="—" id="h${i}pop" min="1" max="16" onkeydown="handleNavKey(event,${i})">
+      <input class="h-step" type="number" placeholder="5" id="h${i}zen" min="1" max="9" oninput="updateStep(${i},'zen')" onkeydown="handleNavKey(event,${i})">
+      <div class="jok-check-cell"><input type="checkbox" class="jok-check" id="h${i}jokok"></div>
+      <input class="h-name" type="text" placeholder="騎手名" id="h${i}jok" readonly>
+    `;
+    c.appendChild(r);
+    document.getElementById(`h${i}sp`).addEventListener('input',()=>updateHNum(i));
+  }
+  // tabindex設定: 列優先（縦方向）順序で明示（Android IME対応）
+  const NAV_COLS=['sp','se','su','pop','zen'];
+  NAV_COLS.forEach((col,colIdx)=>{
+    for(let row=1;row<=N;row++){
+      const el=document.getElementById(`h${row}${col}`);
+      if(el)el.tabIndex=colIdx*N+row;
+    }
+  });
+  syncAllCurrentClass();
+}
+
+function updateHNum(i){
+  document.getElementById(`hn${i}`).classList.toggle('on',!!(sv(`h${i}n`)||fv(`h${i}sp`)));
+}
+function updateSBO(i){
+  const sp=fv(`h${i}sp`),sen=fv(`h${i}se`),sue=fv(`h${i}su`);
+  const el=document.getElementById(`h${i}sbo`);
+  if(!sp&&!sen&&!sue){el.textContent='—';el.classList.remove('low');return;}
+  const sbo=Math.round(sp+sen+sue);
+  el.textContent=sbo;
+  el.classList.toggle('low',sbo<(fv('sbo-limit')||200));
+  updateHNum(i);
+}
+function updateStep(i,f){
+  const el=document.getElementById(`h${i}${f}`),v=parseInt(el.value)||5;
+  el.classList.remove('up','down');
+  if(v>5)el.classList.add('up');else if(v<5)el.classList.add('down');
+}
+
+// ══ NUMERIC INPUT NAVIGATION (キー操作) ══
+// ナビゲート対象: SP(sp) 先行(se) 末脚(su) 人気(pop) 前日(zen) のみ
+const NAV_COL_IDS=['sp','se','su','pop','zen'];
+function handleNavKey(e,i){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    const nextI=i+1;
+    if(nextI>N){
+      // 最後の行の最後の列→最初の行の最後の列に移動
+      const topEl=document.getElementById(`h1zen`);
+      if(topEl){topEl.focus();topEl.select();}
+    }else{
+      // 同じ列の次の行に移動
+      const curId=e.target.id;
+      const col=curId.replace(/^h\d+/,'');
+      const nextEl=document.getElementById(`h${nextI}${col}`);
+      if(nextEl){nextEl.focus();nextEl.select();}
+    }
+  }else if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+    e.preventDefault();
+    const idMatch=e.target.id.match(/^h(\d+)(sp|se|su|pop|zen)$/);
+    if(!idMatch)return;
+    const row=parseInt(idMatch[1]), col=idMatch[2];
+    const colIdx=NAV_COL_IDS.indexOf(col);
+    if(colIdx<0)return;
+    let newRow=row, newCol=colIdx;
+    if(e.key==='ArrowUp'){newRow=Math.max(1,row-1);}
+    else if(e.key==='ArrowDown'){newRow=Math.min(N,row+1);}
+    else if(e.key==='ArrowLeft'){newCol=Math.max(0,colIdx-1);}
+    else if(e.key==='ArrowRight'){newCol=Math.min(NAV_COL_IDS.length-1,colIdx+1);}
+    const nextEl=document.getElementById(`h${newRow}${NAV_COL_IDS[newCol]}`);
+    if(nextEl){nextEl.focus();nextEl.select();}
+  }
+}
+
+function updateClassDiff(i){}
+function syncAllCurrentClass(){
+  const rc=document.getElementById('race-class').value;
+  for(let i=1;i<=N;i++){const el=document.getElementById(`h${i}cc`);if(el)el.value=rc;}
+}
+function updateJockeyCheck(i,val){
+  const el=document.getElementById(`h${i}jokok`);
+  if(el)el.checked=!!val;
+}
+function setBaba(b){
+  baba=b;
+  ['良','稍','重','不良'].forEach((v,i)=>{
+    document.getElementById(['tog-good','tog-yaya','tog-heavy','tog-bad'][i]).classList.toggle('on',v===b);
+  });
+  onCourseChange();
+}
+function setDist(d){
+  dist=d;
+  const m={少:'tog-shou',短:'tog-tan',中:'tog-chu',長:'tog-naga'};
+  Object.keys(m).forEach(v=>document.getElementById(m[v]).classList.toggle('on',v===d));
+  onCourseChange();
+}
+function getCK(){return`${document.getElementById('venue').value}_${dist}`;}
+function onCourseChange(){
+  const key=getCK(),cm=CM[key];
+  document.getElementById('ck-badge').textContent=key+(baba==='不良'?' ⚠️不良':'');
+  const a=document.getElementById('course-info');
+  if(cm){
+    let senEff=cm.sen,sueEff=cm.sue;
+    if(baba==='不良'){if(dist==='少'){senEff=1.35;sueEff=0.70;}else if(dist==='短'){senEff=1.08;sueEff=0.95;}}
+    a.innerHTML=`<div class="course-box"><div class="ci-row"><span>先行係数${baba==='不良'?' (不良補正)':''}</span><span class="ci-val">${senEff}</span></div><div class="ci-row"><span>末脚係数${baba==='不良'?' (不良補正)':''}</span><span class="ci-val">${sueEff}</span></div></div>`;
+  }else{
+    a.innerHTML=`<div class="course-box" style="border-color:var(--red);color:var(--red)">⚠️ コースデータなし</div>`;
+  }
+  for(let i=1;i<=N;i++)updateSBO(i);
+}
+
+// ══ JSON / URL IMPORT ══
+function clearJsonArea(){
+  document.getElementById('json-paste').value='';
+  document.getElementById('load-btn').disabled=true;
+  document.getElementById('import-status').className='status';
+}
+function onJsonPaste(){
+  document.getElementById('load-btn').disabled=document.getElementById('json-paste').value.trim().length<10;
+}
+function loadJson(){
+  let raw=document.getElementById('json-paste').value.trim();
+  try{
+    raw=raw.replace(/[\u201c\u201d]/g,'"').replace(/[\u2018\u2019]/g,"'").replace(/\u00a0/g,' ');
+    const match=raw.match(/```json\s*([\s\S]*?)```/)||raw.match(/```\s*([\s\S]*?)```/)||raw.match(/(\{[\s\S]*\})/);
+    const jsonStr=match?(match[1]||match[0]).trim():raw;
+    const parsed=JSON.parse(jsonStr);
+    if(!parsed.horses?.length)throw new Error('馬データが見つかりません');
+    applyData(parsed);
+    const st=document.getElementById('import-status');
+    st.className='status show s-done';
+    st.textContent=`✅ ${parsed.horses.length}頭をR${currentRace+1}に取込みました！`;
+    showToast(`R${currentRace+1}に${parsed.horses.length}頭 取込完了！`);
+    setTimeout(()=>switchTab('input'),800);
+  }catch(e){
+    const st=document.getElementById('import-status');
+    st.className='status show s-error';
+    st.textContent=`❌ 読込失敗: ${e.message}`;
+  }
+}
+
+// ── CSV IMPORT（通常形式／出力済み結果CSVの両対応） ──
+function clearCsvArea(){
+  document.getElementById('csv-paste').value='';
+  document.getElementById('csv-load-btn').disabled=true;
+  document.getElementById('csv-status').className='status';
+}
+function onCsvPaste(){
+  document.getElementById('csv-load-btn').disabled=document.getElementById('csv-paste').value.trim().length<3;
+}
+// クォート対応のCSV1行パーサー
+function parseCsvLine(line){
+  const result=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQ){
+      if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else inQ=false; }
+      else cur+=c;
+    }else{
+      if(c==='"')inQ=true;
+      else if(c===','){result.push(cur);cur='';}
+      else cur+=c;
+    }
+  }
+  result.push(cur);
+  return result.map(s=>s.trim());
+}
+// ヘッダーに「レース,場,馬場,距離区分,クラス,馬番,馬名...」を含む＝出力済み結果CSVとして複数レースを復元
+function restoreFromExportCsv(lines){
+  const header=parseCsvLine(lines[0]);
+  const idx={};header.forEach((h,i)=>{idx[h]=i;});
+  const need=['レース','場','馬場','距離区分','クラス','馬番','馬名'];
+  if(need.some(k=>!(k in idx)))return null;
+  const cZen=fv('coef-zen')||0.45, cCls=fv('coef-cls')||5;
+  const races={};
+  for(let li=1;li<lines.length;li++){
+    if(!lines[li].trim())continue;
+    const cols=parseCsvLine(lines[li]);
+    const get=k=>(idx[k]!=null?(cols[idx[k]]||'').trim():'');
+    const m=get('レース').match(/(\d+)/); if(!m)continue;
+    const raceIdx=parseInt(m[1])-1; if(raceIdx<0||raceIdx>=NRACES)continue;
+    const num=parseInt(get('馬番')); if(!num||num<1||num>N)continue;
+    if(!races[raceIdx]){
+      races[raceIdx]={
+        venue:get('場')||'大井', baba:get('馬場')||'良', dist:get('距離区分')||'中',
+        raceClassLabel:get('クラス')||'B3', horses:{},
+      };
+    }
+    const r=races[raceIdx];
+    const raceClassVal=CLASS_VAL[r.raceClassLabel]||4;
+    const zenAdjV=get('前日補正'),clsAdjV=get('C補正');
+    let zen='';
+    if(zenAdjV&&parseFloat(zenAdjV)!==0){
+      zen=String(Math.min(9,Math.max(1,Math.round(parseFloat(zenAdjV)/cZen)+5)));
+    }
+    let pc=raceClassVal;
+    if(clsAdjV&&parseFloat(clsAdjV)!==0){
+      pc=Math.min(10,Math.max(1,raceClassVal+Math.round(parseFloat(clsAdjV)/cCls)));
+    }
+    r.horses[num]={
+      n:get('馬名'), sp:get('SP'), se:get('先行'), su:get('末脚'),
+      pop:get('人気'), zen, jok:'', jokok:get('騎手OK')==='○',
+      cc:String(raceClassVal), pc:String(pc),
+    };
+  }
+  return races;
+}
+function loadCsv(){
+  const rawFull=document.getElementById('csv-paste').value.replace(/^\uFEFF/,'');
+  const st=document.getElementById('csv-status');
+  try{
+    const lines=rawFull.split(/\r?\n/).filter(l=>l.trim().length);
+    if(!lines.length)throw new Error('データが空です');
+
+    // ① 出力済み結果CSV（複数レース一括復元）
+    const restored=restoreFromExportCsv(lines);
+    if(restored){
+      const idxs=Object.keys(restored).map(Number).sort((a,b)=>a-b);
+      if(!idxs.length)throw new Error('馬データが見つかりません');
+      idxs.forEach(raceIdx=>{
+        const info=restored[raceIdx];
+        const raceClassVal=CLASS_VAL[info.raceClassLabel]||4;
+        const blank=()=>({n:'',sp:'',se:'',su:'',pop:'',zen:'',jok:'',jokok:false,cc:String(raceClassVal),pc:String(raceClassVal)});
+        const horsesArr=Array.from({length:N},blank);
+        Object.keys(info.horses).forEach(numStr=>{ horsesArr[parseInt(numStr)-1]=info.horses[numStr]; });
+        raceStates[raceIdx]={
+          baba:info.baba, dist:info.dist, venue:info.venue, raceClass:String(raceClassVal),
+          chips:'', chipsVisible:'none', horses:horsesArr,
+        };
+      });
+      if(idxs.includes(currentRace))loadRaceState();
+      updateRaceTabs();
+      st.className='status show s-done';
+      st.textContent=`✅ ${idxs.map(i=>'R'+(i+1)).join('/')} を復元しました（騎手名・前C等は概算/未復元の項目があります）`;
+      showToast(`${idxs.length}レース分を復元しました（CSV）`);
+      return;
+    }
+
+    // ② 通常の出走表CSV（1行1頭・現在のレースへ取込）
+    const horses=[];
+    for(const line of lines){
+      const cols=parseCsvLine(line);
+      const num=parseInt(cols[0]);
+      if(!num||isNaN(num))continue; // ヘッダー行や不正行はスキップ
+      const val=(i)=>(cols[i]!==undefined&&cols[i]!==''?cols[i]:null);
+      const num_=(i)=>{const v=val(i);return v!=null?parseFloat(v):null;};
+      horses.push({
+        num,
+        name: cols[1]||'',
+        sp: num_(2),
+        senkou: num_(3),
+        suikyaku: num_(4),
+        jockey: cols[5]||'',
+        current_class_val: cols[6]?parseInt(cols[6]):undefined,
+        prev_class_val: cols[7]?parseInt(cols[7]):undefined,
+      });
+    }
+    if(!horses.length)throw new Error('馬データが見つかりません');
+    applyData({horses});
+    st.className='status show s-done';
+    st.textContent=`✅ ${horses.length}頭をR${currentRace+1}に取込みました！`;
+    showToast(`R${currentRace+1}に${horses.length}頭 取込完了！（CSV）`);
+    setTimeout(()=>switchTab('input'),800);
+  }catch(e){
+    st.className='status show s-error';
+    st.textContent=`❌ 読込失敗: ${e.message}`;
+  }
+}
+
+function applyData(parsed){
+  const ri=parsed.race_info||{};
+  if(ri.venue){const s=document.getElementById('venue');for(let o of s.options){if(o.value===ri.venue){s.value=ri.venue;break;}}}
+  if(ri.surface_condition)setBaba(ri.surface_condition);
+  if(ri.dist_cat)setDist(ri.dist_cat);
+  if(ri.race_class){const s=document.getElementById('race-class');const v=CLASS_VAL[ri.race_class];if(v)s.value=v;}
+  onCourseChange();
+  const chips=document.getElementById('race-chips');
+  if(Object.keys(ri).length){
+    chips.style.display='flex';chips.innerHTML='';
+    if(ri.race_name)chips.innerHTML+=`<div class="chip">${ri.race_name}</div>`;
+    if(ri.venue)chips.innerHTML+=`<div class="chip">📍 ${ri.venue}</div>`;
+    if(ri.distance)chips.innerHTML+=`<div class="chip">📏 ${ri.distance}m</div>`;
+    if(ri.race_class)chips.innerHTML+=`<div class="chip chip-g">🎖 ${ri.race_class}</div>`;
+  }
+  for(let i=1;i<=N;i++){
+    ['n','sp','se','su','pop','zen','jok'].forEach(f=>{const el=document.getElementById(`h${i}${f}`);if(el){el.value='';el.classList.remove('ai','up','down');}});
+    const sboEl=document.getElementById(`h${i}sbo`);if(sboEl){sboEl.textContent='—';sboEl.classList.remove('low');}
+    document.getElementById(`hn${i}`)?.classList.remove('on');
+    updateJockeyCheck(i,false);
+  }
+  const rc=document.getElementById('race-class').value;
+  (parsed.horses||[]).forEach(h=>{
+    const i=h.num;if(!i||i<1||i>N)return;
+    const set=(f,v)=>{const el=document.getElementById(`h${i}${f}`);if(el&&v!=null){el.value=v;el.classList.add('ai');}};
+    set('n',h.name);set('sp',h.sp);set('se',h.senkou);set('su',h.suikyaku);
+    if(h.jockey)set('jok',h.jockey);
+    const ccEl=document.getElementById(`h${i}cc`);if(ccEl){ccEl.value=h.current_class_val||rc;ccEl.classList.add('ai');}
+    const pcEl=document.getElementById(`h${i}pc`);if(pcEl&&h.prev_class_val){pcEl.value=h.prev_class_val;pcEl.classList.add('ai');}
+    updateSBO(i);updateHNum(i);
+  });
+  syncAllCurrentClass();
+}
+
+function clearHorses(){
+  for(let i=1;i<=N;i++){
+    ['n','sp','se','su','pop','zen','jok'].forEach(f=>{const el=document.getElementById(`h${i}${f}`);if(el){el.value='';el.classList.remove('ai','up','down');}});
+    const s=document.getElementById(`h${i}sbo`);if(s){s.textContent='—';s.classList.remove('low');}
+    document.getElementById(`hn${i}`)?.classList.remove('on');
+    updateJockeyCheck(i,false);
+  }
+  document.getElementById('race-chips').style.display='none';
+  showToast('クリアしました');
+}
+
+// ══ CALCULATE ══
+function calculate(){
+  saveCurrentRaceState();
+  const venue=document.getElementById('venue').value,key=getCK(),cm=CM[key];
+  const cSBOMul=fv('coef-sbo-mul'),cRCMul=fv('coef-rc-mul'),cJok=fv('coef-jok'),cCls=fv('coef-cls');
+  const cZen=fv('coef-zen'),cToday=fv('coef-today');
+  const pop1=fv('pop1'),pop2=fv('pop2'),pop3=fv('pop3'),pop4=fv('pop4');
+  const sboLimit=fv('sbo-limit')||200,sboPenalty=-9999,topN=fv('rc-top-n')||3;
+  const sprintCoef=fv('sprint-coef'),sprintOn=fv('sprint-on');
+  const rescueS=fv('rescue-s'),rescueE=fv('rescue-e'),rescueB=fv('rescue-b');
+  let senCoef=cm?cm.sen:1,sueCoef=cm?cm.sue:1;
+  if(baba==='不良'){if(dist==='少'){senCoef=1.35;sueCoef=0.70;}else if(dist==='短'){senCoef=1.08;sueCoef=0.95;}}
+  const RCL=[fv('rcl1'),fv('rcl2'),fv('rcl3'),fv('rcl4'),fv('rcl5'),fv('rcl6'),fv('rcl7'),fv('rcl8')];
+  let horses=[];
+  for(let i=1;i<=N;i++){
+    const name=sv(`h${i}n`),sp=fv(`h${i}sp`);
+    if(!name&&!sp)continue;
+    const sen=fv(`h${i}se`),sue=fv(`h${i}su`);
+    const sbo=Math.round(sp+sen+sue);
+    const jokOK=document.getElementById(`h${i}jokok`)?.checked?1:0;
+    const ccVal=parseInt(document.getElementById(`h${i}cc`)?.value)||4;
+    const pcVal=parseInt(document.getElementById(`h${i}pc`)?.value)||4;
+    const classDiff=Math.max(Math.min((pcVal-ccVal)*cCls,25),-25);
+    const pop=fv(`h${i}pop`)||99;
+    const zenVal=parseInt(document.getElementById(`h${i}zen`)?.value)||5;
+    horses.push({num:i,name:name||`馬${i}`,sp,sen,sue,sbo,jokOK,classDiff,pop,zenAdj:(zenVal-5)*cZen,tdyAdj:0,senEff:sen*senCoef,sueEff:sue*sueCoef});
+  }
+  if(!horses.length){showToast('馬データを入力してください');return;}
+  const sortDesc=(arr,fn)=>[...arr].sort((a,b)=>fn(b)-fn(a));
+  const senTop=new Set(sortDesc(horses,h=>h.senEff).slice(0,topN).map(h=>h.num));
+  const spTop=new Set(sortDesc(horses,h=>h.sp).slice(0,topN).map(h=>h.num));
+  const sboTop=new Set(sortDesc(horses,h=>h.sbo).slice(0,topN).map(h=>h.num));
+  const sueTop=new Set(sortDesc(horses,h=>h.sueEff).slice(0,topN).map(h=>h.num));
+  horses.forEach(h=>{
+    const r1=senTop.has(h.num)?1:0,r2=spTop.has(h.num)?1:0,r3=sboTop.has(h.num)?1:0,r4=sueTop.has(h.num)?1:0;
+    const balScore=r2+r1+r4;
+    const r5=balScore>=2?1:0;
+    const maxSBO=Math.max(...horses.map(x=>x.sbo));
+    const r6=h.sbo===maxSBO?1:0,r7=0,r8=(h.sp>0&&h.sen>0&&h.sue>0)?1:0;
+    const flags=[r1,r2,r3,r4,r5,r6,r7,r8];
+    h.rclTotal=flags.reduce((sum,f,i)=>sum+(f?RCL[i]:0),0);
+    h.flags=flags;
+    h.popAdj=h.pop===1?pop1:h.pop===2?pop2:h.pop===3?pop3:h.pop===4?pop4:0;
+    let sprintAdj=0;
+    if(sprintOn===1&&dist==='少')sprintAdj=Math.max(0,(h.sp-h.senEff))*sprintCoef;
+    if(h.sbo<sboLimit){h.score=sboPenalty;h.penalty=true;}
+    else{h.score=h.sbo*cSBOMul+h.rclTotal*cRCMul+h.popAdj+h.classDiff+h.jokOK*cJok+h.zenAdj+h.tdyAdj+sprintAdj;h.penalty=false;}
+    const maxSBO2=Math.max(...horses.map(x=>x.sbo));
+    if(h.sbo===maxSBO2&&h.sbo>=235)h.score+=10;
+  });
+  horses.sort((a,b)=>b.score-a.score);
+  horses.forEach((h,i)=>h.rank=i+1);
+  horses.forEach(h=>{
+    h.final=h.score;h.rescued=false;
+    if(h.flags&&h.flags[2]===1&&h.rank>=rescueS&&h.rank<=rescueE&&rescueB>0){h.final+=rescueB;h.rescued=true;}
+  });
+  horses.sort((a,b)=>b.final-a.final);
+  horses.forEach((h,i)=>h.finalRank=i+1);
+  const raceClassLabel=CLASS_ORDER[(parseInt(document.getElementById('race-class').value)||4)-1]||'';
+  raceResults[currentRace]={horses,key,baba,venue,dist,raceClassLabel};
+  renderResult(currentRace);
+  switchTab('result');
+  showToast('計算完了！');
+}
+
+function renderResult(raceIdx){
+  const data=raceResults[raceIdx];
+  if(!data){document.getElementById('result-area').innerHTML='<div style="color:var(--text-dim);text-align:center;padding:32px;font-size:13px">⚡ 計算ボタンを押してください</div>';return;}
+  const {horses,key,baba,venue}=data;
+  const count=horses.length,markLimit=count<=8?4:count<=10?5:6;
+  const MARKS=['◎','○','▲','▲','△','△'],MCLS=['mk0','mk1','mk2','mk2','mk3','mk3'];
+  const maxS=Math.max(...horses.filter(h=>!h.penalty).map(h=>h.final),1);
+  document.getElementById('result-area').innerHTML=`
+    <div style="font-size:10px;color:var(--text-dim);padding:4px 0 10px;border-bottom:1px solid var(--border);margin-bottom:6px;font-family:'JetBrains Mono',monospace">
+      R${raceIdx+1} ${key} ${baba} | ${new Date().toLocaleTimeString('ja-JP')}
+    </div>
+    <div style="display:grid;grid-template-columns:22px 1fr 60px 46px 36px;gap:4px;padding:0 3px 6px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <div></div><div style="font-size:9px;color:var(--text-dim)">馬名</div>
+      <div style="font-size:9px;color:var(--text-dim);text-align:right">最終スコア</div>
+      <div style="font-size:9px;color:var(--text-dim);text-align:right">SBO / RC_L</div>
+      <div style="font-size:9px;color:var(--text-dim);text-align:center">印</div>
+    </div>
+    ${horses.map(h=>{
+      const markIdx=h.finalRank-1;
+      const mark=(!h.penalty&&markIdx<markLimit)?MARKS[markIdx]:'';
+      const mcls=(!h.penalty&&markIdx<markLimit)?MCLS[markIdx]:'';
+      const barW=h.penalty?0:(h.final/maxS*100).toFixed(1);
+      return `<div class="res-row">
+        <div class="rbadge ${!h.penalty&&h.finalRank<=3?'r'+h.finalRank:'rn'}">${h.penalty?'-':h.finalRank}</div>
+        <div>
+          <div style="font-size:13px;font-weight:700">${h.num}. ${h.name}
+            ${h.jokOK?'<span class="ok-tag">騎手○</span>':''}
+            ${h.penalty?'<span class="penalty-tag">SBO低</span>':''}
+            ${h.rescued?'<span style="font-size:8px;background:var(--orange);color:#fff;border-radius:3px;padding:1px 4px;margin-left:3px;font-weight:700;vertical-align:middle">救済</span>':''}
+          </div>
+          <div class="res-sub">SBO:${h.sbo} RC_L:${h.rclTotal.toFixed(2)} C補:${h.classDiff>=0?'+':''}${h.classDiff} 人気${h.pop}:${h.popAdj>0?'+':''}${h.popAdj}</div>
+          <div class="sbar"><div class="sfill" style="width:${barW}%"></div></div>
+        </div>
+        <div class="sval ${!h.penalty&&h.finalRank===1?'top':''}">${h.penalty?'—':h.final.toFixed(1)}</div>
+        <div style="font-size:10px;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--gold)">${h.sbo}<br><span style="color:var(--accent);font-size:9px">${h.rclTotal.toFixed(2)}</span></div>
+        <div class="mark ${mcls}">${mark}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+// ══ PDF（横向きA4・予想表のみ／指数比較なし） ══
+function showPdfModal(){
+  saveCurrentRaceState();
+  let html='',hasAny=false;
+  for(let ri=0;ri<NRACES;ri++){
+    const data=raceResults[ri];
+    if(!data||!data.horses||!data.horses.length)continue;
+    hasAny=true;
+    const {horses,key,baba,venue,raceClassLabel}=data;
+    const count=horses.length,markLimit=count<=8?4:count<=10?5:6;
+    const MARKS=['◎','○','▲','▲','△','△'];
+    const body=horses.map(h=>{
+      const markIdx=h.finalRank-1;
+      const mark=(!h.penalty&&markIdx<markLimit)?MARKS[markIdx]:'';
+      const thick=(h.finalRank===3||h.finalRank===5)?'class="thick-below"':'';
+      return `<tr ${thick}>
+        <td>${h.penalty?'-':h.finalRank}</td>
+        <td>${mark}</td>
+        <td>${h.num}</td>
+        <td class="pname">${h.name}${h.rescued?' [救]':''}${h.jokOK?' 騎○':''}</td>
+        <td>${h.penalty?'—':h.final.toFixed(1)}</td>
+        <td>${h.sbo}</td>
+        <td>${h.rclTotal.toFixed(2)}</td>
+        <td>${h.sp}</td>
+        <td>${h.sen}</td>
+        <td>${h.sue}</td>
+        <td>${h.classDiff>=0?'+':''}${h.classDiff}</td>
+        <td>${h.pop&&h.pop!==99?h.pop:'—'}</td>
+      </tr>`;
+    }).join('');
+    html+=`<div class="pdf-page">
+      <div class="pdf-race-header">R${ri+1}　${venue}${raceClassLabel?'　'+raceClassLabel:''}　${key}　馬場:${baba}</div>
+      <table class="pdf-tbl">
+        <thead><tr>
+          <th>順</th><th>印</th><th>番</th><th style="text-align:left">馬名</th>
+          <th>最終<br>スコア</th><th>SBO</th><th>RC_L</th><th>SP</th><th>先行</th><th>末脚</th><th>C補正</th><th>人気</th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+  }
+  if(!hasAny){showToast('計算済みのレースがありません');return;}
+  document.getElementById('pdf-content-area').innerHTML=html;
+  document.getElementById('pdf-modal').classList.add('show');
+}
+function closePdfModal(){
+  document.getElementById('pdf-modal').classList.remove('show');
+}
+function printPdf(){
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  const origTitle=document.title;
+  document.title=`${dateStr}_v3`;
+  const restore=()=>{document.title=origTitle;window.removeEventListener('afterprint',restore);};
+  window.addEventListener('afterprint',restore);
+  window.print();
+  setTimeout(restore,3000);
+}
+
+// ══ CSV EXPORT（指数比較なし） ══
+function exportCSV(){
+  saveCurrentRaceState();
+  const BOM='\uFEFF';
+  const headers=['レース','場','馬場','距離区分','クラス','順位','馬番','馬名','印',
+    '最終スコア','SBO','RC_L','SP','先行','末脚','C補正','人気','人気補正','前日補正','騎手OK'];
+  const escCsv=v=>{
+    const s=String(v??'');
+    return (s.includes(',')||s.includes('\n')||s.includes('"'))?'"'+s.replace(/"/g,'""')+'"':s;
+  };
+  const lines=[BOM+headers.join(',')];
+  let hasData=false;
+  for(let ri=0;ri<NRACES;ri++){
+    const data=raceResults[ri];
+    if(!data||!data.horses||!data.horses.length)continue;
+    hasData=true;
+    const {horses,baba,venue,dist,raceClassLabel}=data;
+    const raceLabel=`R${ri+1}`;
+    const count=horses.length,markLimit=count<=8?4:count<=10?5:6;
+    const MARKS=['◎','○','▲','▲','△','△'];
+    [...horses].sort((a,b)=>a.num-b.num).forEach(h=>{
+      const markIdx=h.finalRank-1;
+      const mark=(!h.penalty&&markIdx<markLimit)?MARKS[markIdx]:'';
+      const row=[
+        raceLabel,venue||'',baba||'',dist||'',raceClassLabel||'',
+        h.penalty?'':h.finalRank,h.num,h.name,mark,
+        h.penalty?'':h.final.toFixed(1),h.sbo,h.rclTotal.toFixed(2),
+        h.sp,h.sen,h.sue,h.classDiff,
+        (h.pop&&h.pop!==99)?h.pop:'',h.popAdj,h.zenAdj.toFixed(2),h.jokOK?'○':'',
+      ];
+      lines.push(row.map(escCsv).join(','));
+    });
+  }
+  if(!hasData){showToast('計算済みデータがありません');return;}
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const now=new Date();
+  const dateStr=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  a.href=url;a.download=`nar_v3_${dateStr}.csv`;a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSVをダウンロードしました');
+}
+
+// ══ JOCKEY EDITOR ══
+function renderJockeyEditor(){
+  const c=document.getElementById('jockey-editor');
+  c.innerHTML='<div class="jok-grid">'+VENUES.map(v=>`
+    <div class="jok-venue-card">
+      <div class="jok-venue-title">📍 ${v}</div>
+      <div class="jok-list" id="jok-list-${v}">${(JOCKEYS[v]||[]).map((j,idx)=>`<div class="jok-tag"><span>${j}</span><button onclick="removeJockey('${v}',${idx})">×</button></div>`).join('')}</div>
+      <div class="jok-add-row"><input class="jok-add-input" type="text" placeholder="騎手名を追加" id="jok-add-${v}"><button class="jok-add-btn" onclick="addJockey('${v}')">追加</button></div>
+    </div>`).join('')+'</div>';
+}
+function addJockey(venue){
+  const inp=document.getElementById(`jok-add-${venue}`),name=inp.value.trim();if(!name)return;
+  if(!JOCKEYS[venue])JOCKEYS[venue]=[];
+  if(!JOCKEYS[venue].includes(name)){JOCKEYS[venue].push(name);inp.value='';renderJockeyEditor();}
+}
+function removeJockey(venue,idx){JOCKEYS[venue].splice(idx,1);renderJockeyEditor();}
+
+// ══ COURSE MASTER TABLE ══
+function renderCMTable(){
+  document.getElementById('cm-tbody').innerHTML=VENUES.map(v=>DIST_CATS.map(d=>{
+    const key=`${v}_${d}`,cm=CM[key]||{sen:1,sue:1};
+    return `<tr><td>${v}</td><td style="font-size:10px;color:var(--text-mid)">${d}</td>
+      <td><input class="st-in" type="number" value="${cm.sen}" step="0.01" onchange="updateCM('${key}','sen',this.value)"></td>
+      <td><input class="st-in" type="number" value="${cm.sue}" step="0.01" onchange="updateCM('${key}','sue',this.value)"></td></tr>`;
+  }).join('')).join('');
+}
+function updateCM(key,field,val){
+  if(!CM[key])CM[key]={sen:1,sue:1};
+  CM[key][field]=parseFloat(val)||1;saveCM();onCourseChange();
+}
+
+// ══ HELPERS ══
+function switchTab(name){
+  const names=['import','input','result','jockey','config'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',names[i]===name));
+  if(name==='config')renderCMTable();
+  if(name==='result'){
+    updateRaceTabs();
+    renderResult(currentRace);
+  }
+  if(name==='import'||name==='input')updateRaceTabs();
+}
+function fv(id){return parseFloat(document.getElementById(id)?.value)||0}
+function sv(id){return document.getElementById(id)?.value?.trim()||''}
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+init();
+</script>
+</body>
+</html>
