@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>予想検証ボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --ink:#1E2A47;
+  --ink-2:#141C33;
+  --paper:#F7F3E8;
+  --panel:#FFFFFF;
+  --line:#DCD4BE;
+  --line-soft:#EAE3CF;
+  --amber:#D9962F;
+  --amber-deep:#B97A1E;
+  --hit:#2E7A4E;
+  --hit-bg:#E7F2EA;
+  --miss:#9C9585;
+  --bad:#B24A3C;
+  --bad-bg:#F7E9E6;
+  --text:#211F19;
+  --text-soft:#6C6555;
+  --sans:'Zen Kaku Gothic New',"Hiragino Sans","Yu Gothic",sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --radius:3px;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ink:#0F1626;
+    --ink-2:#0A0F1C;
+    --paper:#161A22;
+    --panel:#1D222C;
+    --line:#333A48;
+    --line-soft:#2A303C;
+    --amber:#E3A33F;
+    --amber-deep:#F0B65C;
+    --hit:#5FBE85;
+    --hit-bg:#1B3126;
+    --miss:#7C8494;
+    --bad:#E08373;
+    --bad-bg:#3A2420;
+    --text:#EDEAE0;
+    --text-soft:#9DA3AF;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#0F1626;
+  --ink-2:#0A0F1C;
+  --paper:#161A22;
+  --panel:#1D222C;
+  --line:#333A48;
+  --line-soft:#2A303C;
+  --amber:#E3A33F;
+  --amber-deep:#F0B65C;
+  --hit:#5FBE85;
+  --hit-bg:#1B3126;
+  --miss:#7C8494;
+  --bad:#E08373;
+  --bad-bg:#3A2420;
+  --text:#EDEAE0;
+  --text-soft:#9DA3AF;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--paper);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.topbar{
+  background:linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 100%);
+  color:#F3EFE2;
+  padding:22px 18px 20px;
+  border-bottom:3px solid var(--amber);
+}
+.topbar h1{
+  margin:0;
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:.02em;
+}
+.topbar p{
+  margin:6px 0 0;
+  font-size:12.5px;
+  color:#B9BFD1;
+}
+main{
+  max-width:920px;
+  margin:0 auto;
+  padding:16px 14px 60px;
+}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:14px;
+}
+.panel h2{
+  font-size:13px;
+  margin:0 0 12px;
+  font-weight:700;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.panel h2 .num{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--amber-deep);
+  border:1px solid var(--amber-deep);
+  border-radius:2px;
+  padding:1px 5px;
+}
+.upload-row{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+  margin-bottom:10px;
+}
+.upload-box{
+  border:1px dashed var(--line);
+  border-radius:var(--radius);
+  padding:12px;
+  background:var(--paper);
+}
+.upload-box label{
+  display:block;
+  font-size:12px;
+  font-weight:700;
+  margin-bottom:6px;
+  color:var(--text-soft);
+}
+.upload-box input[type=file]{
+  font-size:12px;
+  width:100%;
+  color:var(--text);
+}
+.file-list{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.file-chip{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:11.5px;
+  font-family:var(--mono);
+  background:var(--paper);
+  border:1px solid var(--line-soft);
+  border-radius:2px;
+  padding:4px 8px;
+}
+.file-chip .track-tag{
+  color:#fff;
+  background:var(--ink);
+  border-radius:2px;
+  padding:1px 6px;
+  font-family:var(--sans);
+  font-weight:700;
+  font-size:10.5px;
+}
+.file-chip .kind-tag{
+  color:var(--text-soft);
+}
+.file-chip .rows{
+  margin-left:auto;
+  color:var(--text-soft);
+}
+.btnrow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+button{
+  font-family:var(--sans);
+  cursor:pointer;
+}
+.btn{
+  border:1px solid var(--ink);
+  background:var(--ink);
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  padding:7px 12px;
+  border-radius:2px;
+}
+.btn.secondary{
+  background:transparent;
+  color:var(--text);
+  border-color:var(--line);
+}
+.btn.danger{
+  background:transparent;
+  color:var(--bad);
+  border-color:var(--bad);
+}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.empty-note{
+  font-size:12px;
+  color:var(--text-soft);
+  padding:8px 0 0;
+}
+.chip-group{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+.chip{
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--text-soft);
+  font-size:12px;
+  padding:5px 11px;
+  border-radius:14px;
+  font-weight:500;
+}
+.chip.active{
+  background:var(--ink);
+  border-color:var(--ink);
+  color:#F3EFE2;
+  font-weight:700;
+}
+.filter-label{
+  font-size:11px;
+  color:var(--text-soft);
+  font-weight:700;
+  margin:0 0 6px;
+  letter-spacing:.03em;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.selected-note{
+  font-size:11px;
+  font-weight:700;
+  color:var(--amber-deep);
+  background:rgba(217,150,47,.12);
+  border:1px solid rgba(217,150,47,.35);
+  border-radius:12px;
+  padding:2px 9px;
+  letter-spacing:0;
+}
+.date-range{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+}
+.date-range input{
+  font-family:var(--mono);
+  font-size:12px;
+  border:1px solid var(--line);
+  border-radius:2px;
+  padding:5px 6px;
+  background:var(--panel);
+  color:var(--text);
+}
+.summary-strip{
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+  align-items:baseline;
+}
+.summary-strip .metric{
+  display:flex;
+  flex-direction:column;
+}
+.summary-strip .metric .v{
+  font-family:var(--mono);
+  font-size:19px;
+  font-weight:700;
+  color:var(--ink-deep,var(--text));
+}
+.summary-strip .metric .l{
+  font-size:10.5px;
+  color:var(--text-soft);
+}
+.tabs{
+  display:flex;
+  gap:4px;
+  flex-wrap:wrap;
+  border-bottom:1px solid var(--line);
+  padding-bottom:10px;
+  margin-bottom:14px;
+}
+.tab{
+  border:1px solid var(--line);
+  background:var(--paper);
+  color:var(--text-soft);
+  font-size:12.5px;
+  font-weight:700;
+  padding:7px 13px;
+  border-radius:2px 2px 0 0;
+}
+.tab.active{
+  background:var(--ink);
+  color:#F3EFE2;
+  border-color:var(--ink);
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12.5px;
+}
+th,td{
+  padding:8px 7px;
+  text-align:right;
+  border-bottom:1px solid var(--line-soft);
+  font-family:var(--mono);
+  white-space:nowrap;
+}
+th{
+  font-family:var(--sans);
+  font-size:11px;
+  color:var(--text-soft);
+  font-weight:700;
+  text-align:right;
+}
+th.rowhead,td.rowhead{
+  text-align:left;
+  font-family:var(--sans);
+  font-weight:700;
+  color:var(--text);
+}
+td.dash{
+  color:var(--miss);
+  text-align:right;
+}
+.group-gosei{background:rgba(217,150,47,.06);}
+.group-goukei{background:rgba(46,122,78,.05);}
+th.group-gosei,th.group-goukei{
+  border-bottom:2px solid var(--line);
+}
+.method-head{
+  font-size:10.5px !important;
+  letter-spacing:.04em;
+  padding-bottom:3px !important;
+}
+.tag-gosei{color:var(--amber-deep);}
+.tag-goukei{color:var(--hit);}
+.hit-high{color:var(--hit);font-weight:700;}
+.hit-low{color:var(--bad);}
+.table-scroll{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+}
+.table-scroll table{min-width:640px;}
+.card-3t{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+@media (max-width:480px){
+  .card-3t{grid-template-columns:1fr;}
+}
+.stat-card{
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:14px;
+  background:var(--paper);
+}
+.stat-card h3{
+  margin:0 0 10px;
+  font-size:12.5px;
+  font-weight:700;
+}
+.stat-card h3.gosei{color:var(--amber-deep);}
+.stat-card h3.goukei{color:var(--hit);}
+.stat-row{
+  display:flex;
+  justify-content:space-between;
+  padding:5px 0;
+  border-bottom:1px solid var(--line-soft);
+  font-size:12.5px;
+}
+.stat-row .v{font-family:var(--mono);font-weight:700;}
+.stat-row:last-child{border-bottom:none;}
+.breakdown-toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.n-stepper{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.n-stepper button{
+  width:26px;height:26px;
+  border:1px solid var(--line);
+  background:var(--panel);
+  border-radius:2px;
+  font-weight:700;
+  color:var(--text);
+}
+.n-stepper .nval{
+  font-family:var(--mono);
+  font-weight:700;
+  font-size:14px;
+  min-width:18px;
+  text-align:center;
+}
+.footnote{
+  font-size:11px;
+  color:var(--text-soft);
+  margin-top:10px;
+  line-height:1.7;
+}
+.sr-only{
+  position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);
+}
+::selection{background:var(--amber);color:#1E1A0E;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>予想検証ボード</h1>
+  <p>合成順位 vs 合計順位 &mdash; 的中率・回収率の比較検証</p>
+</div>
+
+<main>
+
+  <section class="panel" id="upload-section">
+    <h2><span class="num">01</span>データ取り込み</h2>
+    <div class="upload-row">
+      <div class="upload-box">
+        <label for="predFiles">予想結果CSV(predictions_results)&mdash;複数選択可</label>
+        <input type="file" id="predFiles" accept=".csv" multiple>
+      </div>
+      <div class="upload-box">
+        <label for="payoutFiles">払戻CSV(payouts)&mdash;複数選択可</label>
+        <input type="file" id="payoutFiles" accept=".csv" multiple>
+      </div>
+    </div>
+    <div class="file-list" id="fileList"></div>
+    <p class="empty-note" id="emptyNote">まだデータがありません。CSVを選択してください(ファイル名の先頭部分を競馬場名として自動判定します。例: 大井_predictions_results.csv)。</p>
+    <div class="btnrow">
+      <button class="btn secondary" id="clearBtn">保存データを消去</button>
+    </div>
+  </section>
+
+  <section class="panel" id="filter-section" style="display:none;">
+    <h2><span class="num">02</span>絞り込み</h2>
+    <p class="filter-label">競馬場 <span id="trackSelectedNote" class="selected-note"></span></p>
+    <div class="chip-group" id="trackChips"></div>
+    <p class="filter-label">馬場状態 <span id="condSelectedNote" class="selected-note"></span></p>
+    <div class="chip-group" id="condChips"></div>
+    <p class="filter-label">頭数帯 <span id="sizeSelectedNote" class="selected-note"></span></p>
+    <div class="chip-group" id="sizeChips"></div>
+    <p class="filter-label">期間</p>
+    <div class="date-range">
+      <input type="date" id="dateFrom"> 〜 <input type="date" id="dateTo">
+      <button class="btn secondary" id="dateClearBtn" style="padding:4px 9px;font-size:11px;">クリア</button>
+    </div>
+  </section>
+
+  <section class="panel" id="summary-section" style="display:none;">
+    <div class="summary-strip" id="summaryStrip"></div>
+  </section>
+
+  <section class="panel" id="main-section" style="display:none;">
+    <h2><span class="num">03</span>合成 vs 合計 &mdash; 券種別比較</h2>
+    <div class="tabs" id="betTabs"></div>
+    <div id="tabBody"></div>
+    <p class="footnote" id="tableFootnote"></p>
+  </section>
+
+  <section class="panel" id="breakdown-section" style="display:none;">
+    <h2><span class="num">04</span>頭数・馬場状態での違い</h2>
+    <div class="breakdown-toolbar">
+      <div class="chip-group" id="groupByChips" style="margin-bottom:0;">
+        <button class="chip active" data-g="size">頭数帯別</button>
+        <button class="chip" data-g="cond">馬場状態別</button>
+        <button class="chip" data-g="track">競馬場別</button>
+        <button class="chip" data-g="distance">距離別</button>
+      </div>
+      <div class="n-stepper" id="breakdownNWrap">
+        <span style="font-size:11px;color:var(--text-soft);">上位N</span>
+        <button id="nMinus">&minus;</button>
+        <span class="nval" id="nVal">3</span>
+        <button id="nPlus">+</button>
+      </div>
+    </div>
+    <div class="table-scroll"><table id="breakdownTable"></table></div>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- constants ---------------- */
+  var BET_TYPES = [
+    {key:'tansho', label:'単勝', needMin:1, payoutKey:'単勝', combo:'single'},
+    {key:'umaren',  label:'馬連', needMin:2, payoutKey:'馬連', combo:'pair'},
+    {key:'wide',    label:'ワイド', needMin:2, payoutKey:'ワイド', combo:'pair-multi'},
+    {key:'sanrenpuku', label:'3連複', needMin:3, payoutKey:'3連複', combo:'triple'},
+    {key:'sanrentan', label:'3連単(上位3頭box固定)', needMin:3, payoutKey:'3連単', combo:'triple-ordered'}
+  ];
+  var STORAGE_KEY = 'kekkaKenshoData_v1';
+  var MAX_N = 5;
+
+  /* ---------------- state ---------------- */
+  var state = {
+    predRows: [],   // {track,date,race_no,track_condition,horse_no,gosei_rank,goukei_value,finish_rank}
+    payoutRows: [], // {track,date,race_no,bet_type,horses:[...],ordered:[...],payout}
+    loadedFiles: [], // {name, track, kind, rows}
+    filters: { tracks:new Set(), conds:new Set(), sizes:new Set(['少','多']), from:'', to:'' },
+    activeBet: 'tansho',
+    breakdownGroup: 'size',
+    breakdownN: 3
+  };
+
+  /* ---------------- persistence ---------------- */
+  function saveToStorage(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        predRows: state.predRows,
+        payoutRows: state.payoutRows,
+        loadedFiles: state.loadedFiles
+      }));
+    }catch(e){ console.warn('storage save failed', e); }
+  }
+  function loadFromStorage(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return;
+      var data = JSON.parse(raw);
+      state.predRows = data.predRows || [];
+      state.payoutRows = data.payoutRows || [];
+      state.loadedFiles = data.loadedFiles || [];
+    }catch(e){ console.warn('storage load failed', e); }
+  }
+
+  /* ---------------- parsing helpers ---------------- */
+  function guessTrack(filename){
+    var stem = filename.replace(/\.csv$/i,'');
+    var m = stem.split(/[_\-]/)[0];
+    return m || stem;
+  }
+  function cleanCombo(raw){
+    if(raw==null) return [];
+    var s = String(raw).replace(/[="]/g,'').trim();
+    if(!s) return [];
+    return s.split('-').map(function(x){return x.trim();}).filter(Boolean);
+  }
+  // Normalize date strings from different export tools (e.g. "2026/9/14" vs "2026-09-14")
+  // to a single canonical "YYYY-MM-DD" form so predictions and payouts always join correctly.
+  function normalizeDate(raw){
+    var s = String(raw).trim();
+    var m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if(!m) return s;
+    var pad = function(x){ return x.length<2 ? '0'+x : x; };
+    return m[1]+'-'+pad(m[2])+'-'+pad(m[3]);
+  }
+
+  function parsePredCSV(text, filename){
+    var res = Papa.parse(text, {header:true, skipEmptyLines:true});
+    var track = guessTrack(filename);
+    var rows = [];
+    res.data.forEach(function(r){
+      if(!r.date || !r.race_no) return;
+      rows.push({
+        track: track,
+        date: normalizeDate(r.date),
+        race_no: String(r.race_no).trim(),
+        track_condition: (r.track_condition||'').trim(),
+        horse_no: String(r.horse_no).trim(),
+        gosei_rank: parseInt(r.gosei_rank,10),
+        goukei_value: parseFloat(r.goukei_value),
+        finish_rank: r.finish_rank!==undefined && r.finish_rank!=='' ? parseInt(r.finish_rank,10) : null,
+        distance: r.distance!==undefined && r.distance!=='' ? parseInt(r.distance,10) : null
+      });
+    });
+    return {track:track, rows:rows};
+  }
+  // Some tracks export the quinella bet_type as "馬連複" instead of "馬連";
+  // canonicalize so both join correctly against BET_TYPES.payoutKey.
+  var BET_TYPE_ALIASES = { '馬連複': '馬連' };
+  function normalizeBetType(raw){
+    var s = (raw||'').trim();
+    return BET_TYPE_ALIASES[s] || s;
+  }
+  function parsePayoutCSV(text, filename){
+    var res = Papa.parse(text, {header:true, skipEmptyLines:true});
+    var track = guessTrack(filename);
+    var rows = [];
+    res.data.forEach(function(r){
+      if(!r.date || !r.race_no) return;
+      var horses = cleanCombo(r.combo);
+      rows.push({
+        track: track,
+        date: normalizeDate(r.date),
+        race_no: String(r.race_no).trim(),
+        bet_type: normalizeBetType(r.bet_type),
+        horses: horses,
+        payout: parseFloat(r.payout)||0
+      });
+    });
+    return {track:track, rows:rows};
+  }
+
+  function mergeRows(target, incoming, keyFn){
+    // upsert: a re-uploaded file replaces any existing rows with the same key,
+    // rather than silently keeping stale cached data.
+    var index = {};
+    target.forEach(function(r, i){ index[keyFn(r)] = i; });
+    incoming.forEach(function(r){
+      var k = keyFn(r);
+      if(k in index){ target[index[k]] = r; }
+      else { index[k] = target.length; target.push(r); }
+    });
+  }
+  function predKey(r){ return [r.track,r.date,r.race_no,r.horse_no].join('|'); }
+  function payoutKey(r){ return [r.track,r.date,r.race_no,r.bet_type,r.horses.join(',')].join('|'); }
+
+  /* ---------------- file input handling ---------------- */
+  function handleFiles(fileList, kind){
+    var arr = Array.prototype.slice.call(fileList);
+    var pending = arr.length;
+    if(!pending) return;
+    arr.forEach(function(file){
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var text = e.target.result;
+        var parsed = kind==='pred' ? parsePredCSV(text, file.name) : parsePayoutCSV(text, file.name);
+        if(kind==='pred'){
+          mergeRows(state.predRows, parsed.rows, predKey);
+        }else{
+          mergeRows(state.payoutRows, parsed.rows, payoutKey);
+        }
+        state.loadedFiles.push({name:file.name, track:parsed.track, kind:kind, rows:parsed.rows.length});
+        pending--;
+        if(pending===0){
+          saveToStorage();
+          rebuildAll();
+        }
+      };
+      reader.readAsText(file, 'UTF-8');
+    });
+  }
+
+  /* ---------------- race model ---------------- */
+  var races = []; // {key,track,date,race_no,track_condition,fieldSize,sizeband,horses[],goseiOrder[],goukeiOrder[],winner,pos2,pos3}
+
+  function buildRaces(){
+    var map = {};
+    state.predRows.forEach(function(r){
+      var key = [r.track,r.date,r.race_no].join('|');
+      if(!map[key]){
+        map[key] = {key:key, track:r.track, date:r.date, race_no:r.race_no, track_condition:r.track_condition, horses:[]};
+      }
+      map[key].horses.push(r);
+      if(r.track_condition) map[key].track_condition = r.track_condition;
+      if(r.distance) map[key].distance = r.distance;
+    });
+    races = Object.keys(map).map(function(k){
+      var race = map[k];
+      race.fieldSize = race.horses.length;
+      race.sizeband = race.fieldSize<=11 ? '少' : '多';
+      race.goseiOrder = race.horses.slice().sort(function(a,b){return a.gosei_rank-b.gosei_rank;}).map(function(h){return h.horse_no;});
+      race.goukeiOrder = race.horses.slice().sort(function(a,b){return a.goukei_value-b.goukei_value;}).map(function(h){return h.horse_no;});
+      var byFinish = {};
+      race.horses.forEach(function(h){ if(h.finish_rank) byFinish[h.finish_rank]=h.horse_no; });
+      race.finish1 = byFinish[1]||null;
+      race.finish2 = byFinish[2]||null;
+      race.finish3 = byFinish[3]||null;
+      race.hasFinish = !!(race.finish1 && race.finish2 && race.finish3);
+      return race;
+    });
+
+    // payout index: track|date|race_no|bet_type -> array of {set(sorted join), horses, payout}
+    var pIndex = {};
+    state.payoutRows.forEach(function(r){
+      var key = [r.track,r.date,r.race_no,r.bet_type].join('|');
+      if(!pIndex[key]) pIndex[key]=[];
+      pIndex[key].push(r);
+    });
+    races.forEach(function(race){ race.payoutIndex = pIndex; });
+  }
+
+  function lookupPayout(race, betPayoutKey, horsesSet, ordered){
+    var key = [race.track,race.date,race.race_no,betPayoutKey].join('|');
+    var rows = race.payoutIndex[key];
+    if(!rows || !rows.length) return null;
+    if(ordered){
+      for(var i=0;i<rows.length;i++){
+        var rh = rows[i].horses;
+        if(rh.length===ordered.length && rh.every(function(h,idx){return h===ordered[idx];})){
+          return rows[i].payout;
+        }
+      }
+      return null;
+    }
+    var wanted = horsesSet.slice().sort().join(',');
+    for(var j=0;j<rows.length;j++){
+      var rh2 = rows[j].horses.slice().sort().join(',');
+      if(rh2===wanted) return rows[j].payout;
+    }
+    return null;
+  }
+  function hasPayoutData(track, betPayoutKey){
+    return state.payoutRows.some(function(r){ return r.track===track && r.bet_type===betPayoutKey; });
+  }
+
+  function combinations(n,k){
+    if(k>n||k<0) return 0;
+    var num=1, den=1;
+    for(var i=0;i<k;i++){ num*= (n-i); den*=(i+1); }
+    return Math.round(num/den);
+  }
+  // 3連単box(着順を問わず全並びを購入)の点数。n頭からk頭を選んで並べる順列数。
+  function permutations(n,k){
+    if(k>n||k<0) return 0;
+    var num=1;
+    for(var i=0;i<k;i++){ num*=(n-i); }
+    return num;
+  }
+
+  /* ---------------- stats computation ---------------- */
+  // method: 'gosei' | 'goukei'
+  function topNHorses(race, method, n){
+    var order = method==='gosei' ? race.goseiOrder : race.goukeiOrder;
+    var k = Math.min(n, order.length);
+    return order.slice(0,k);
+  }
+
+  function computeBetStats(filteredRaces, betKey, n, method){
+    var bt = BET_TYPES.filter(function(b){return b.key===betKey;})[0];
+    var applicable = bt.combo==='triple-ordered' ? true : (n>=bt.needMin);
+    var out = {applicable:applicable, races:0, hits:0, cost:0, ret:0, payoutAvailable:true};
+    if(!applicable) return out;
+
+    filteredRaces.forEach(function(race){
+      if(!race.hasFinish) return;
+      if(!hasPayoutData(race.track, bt.payoutKey)) { out.payoutAvailable=false; }
+
+      if(bt.combo==='triple-ordered'){
+        var k3 = Math.min(3, race.fieldSize);
+        if(k3<3) return;
+        var top3 = topNHorses(race, method, 3);
+        out.races++;
+        var top3Set = top3.slice().sort();
+        var actualSet = [race.finish1,race.finish2,race.finish3].slice().sort();
+        var hit = top3Set.length===actualSet.length && top3Set.every(function(h,i){return h===actualSet[i];});
+        out.cost += permutations(top3.length,3)*100;
+        if(hit){
+          out.hits++;
+          var payoutAmt = lookupPayout(race, bt.payoutKey, null, [race.finish1,race.finish2,race.finish3]);
+          if(payoutAmt!=null) out.ret += payoutAmt;
+        }
+        return;
+      }
+
+      var topN = topNHorses(race, method, n);
+      if(topN.length < bt.needMin) return;
+      out.races++;
+
+      if(bt.combo==='single'){
+        out.cost += topN.length*100;
+        if(race.finish1 && topN.indexOf(race.finish1)>-1){
+          out.hits++;
+          var pAmt = lookupPayout(race, bt.payoutKey, [race.finish1]);
+          if(pAmt!=null) out.ret += pAmt;
+        }
+      } else if(bt.combo==='pair'){
+        out.cost += combinations(topN.length,2)*100;
+        if(race.finish1 && race.finish2 && topN.indexOf(race.finish1)>-1 && topN.indexOf(race.finish2)>-1){
+          out.hits++;
+          var pAmt2 = lookupPayout(race, bt.payoutKey, [race.finish1,race.finish2]);
+          if(pAmt2!=null) out.ret += pAmt2;
+        }
+      } else if(bt.combo==='pair-multi'){
+        out.cost += combinations(topN.length,2)*100;
+        var pairs = [[race.finish1,race.finish2],[race.finish1,race.finish3],[race.finish2,race.finish3]];
+        var anyHit=false;
+        pairs.forEach(function(pr){
+          if(topN.indexOf(pr[0])>-1 && topN.indexOf(pr[1])>-1){
+            anyHit=true;
+            var pAmt3 = lookupPayout(race, bt.payoutKey, pr);
+            if(pAmt3!=null) out.ret += pAmt3;
+          }
+        });
+        if(anyHit) out.hits++;
+      } else if(bt.combo==='triple'){
+        out.cost += combinations(topN.length,3)*100;
+        var triple=[race.finish1,race.finish2,race.finish3];
+        if(triple.every(function(h){return h && topN.indexOf(h)>-1;})){
+          out.hits++;
+          var pAmt4 = lookupPayout(race, bt.payoutKey, triple);
+          if(pAmt4!=null) out.ret += pAmt4;
+        }
+      }
+    });
+    return out;
+  }
+
+  function fmtPct(x){ return (x*100).toFixed(1)+'%'; }
+  function fmtYen(x){ return '¥'+Math.round(x).toLocaleString(); }
+
+  /* ---------------- filtering ---------------- */
+  function getFilteredRaces(){
+    var f = state.filters;
+    return races.filter(function(r){
+      if(f.tracks.size && !f.tracks.has(r.track)) return false;
+      if(f.conds.size && r.track_condition && !f.conds.has(r.track_condition)) return false;
+      if(f.sizes.size && !f.sizes.has(r.sizeband)) return false;
+      if(f.from && r.date < f.from) return false;
+      if(f.to && r.date > f.to) return false;
+      return true;
+    });
+  }
+
+  /* ---------------- rendering ---------------- */
+  function el(tag, cls, html){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(html!=null) e.innerHTML = html;
+    return e;
+  }
+
+  function renderFileList(){
+    var wrap = document.getElementById('fileList');
+    wrap.innerHTML = '';
+    state.loadedFiles.forEach(function(f){
+      var chip = el('div','file-chip');
+      chip.innerHTML =
+        '<span class="track-tag">'+f.track+'</span>'+
+        '<span class="kind-tag">'+(f.kind==='pred'?'予想結果':'払戻')+'</span>'+
+        '<span>'+f.name+'</span>'+
+        '<span class="rows">'+f.rows+'行</span>';
+      wrap.appendChild(chip);
+    });
+    document.getElementById('emptyNote').style.display = state.loadedFiles.length ? 'none' : 'block';
+    var hasData = races.length>0;
+    ['filter-section','summary-section','main-section','breakdown-section'].forEach(function(id){
+      document.getElementById(id).style.display = hasData ? '' : 'none';
+    });
+  }
+
+  function renderFilters(){
+    var tracks = Array.from(new Set(races.map(function(r){return r.track;}))).sort();
+    var conds = Array.from(new Set(races.map(function(r){return r.track_condition;}).filter(Boolean)));
+    var condOrder = ['良','稍重','重','不良'];
+    conds.sort(function(a,b){return condOrder.indexOf(a)-condOrder.indexOf(b);});
+
+    if(state.filters.tracks.size===0){ tracks.forEach(function(t){state.filters.tracks.add(t);}); }
+    if(state.filters.conds.size===0){ conds.forEach(function(c){state.filters.conds.add(c);}); }
+
+    renderChipGroup('trackChips', tracks, state.filters.tracks, null, 'trackSelectedNote');
+    renderChipGroup('condChips', conds, state.filters.conds, null, 'condSelectedNote');
+    renderChipGroup('sizeChips', ['少(〜11頭)','多(12頭〜)'], state.filters.sizes, {'少(〜11頭)':'少','多(12頭〜)':'多'}, 'sizeSelectedNote');
+  }
+
+  function renderChipGroup(containerId, values, activeSet, labelMap, noteId){
+    var wrap = document.getElementById(containerId);
+    wrap.innerHTML = '';
+    values.forEach(function(v){
+      var key = labelMap ? labelMap[v] : v;
+      var chip = el('button','chip'+(activeSet.has(key)?' active':''), v);
+      chip.addEventListener('click', function(){
+        if(activeSet.has(key)) activeSet.delete(key); else activeSet.add(key);
+        updateSelectedNote(noteId, activeSet);
+        renderAll();
+      });
+      wrap.appendChild(chip);
+    });
+    updateSelectedNote(noteId, activeSet);
+  }
+  function updateSelectedNote(noteId, activeSet){
+    if(!noteId) return;
+    var note = document.getElementById(noteId);
+    if(!note) return;
+    var sel = Array.from(activeSet);
+    note.textContent = sel.length ? ('選択中: '+sel.join('・')) : '未選択';
+  }
+
+  function renderSummary(filtered){
+    var strip = document.getElementById('summaryStrip');
+    var tracks = new Set(filtered.map(function(r){return r.track;}));
+    var dates = filtered.map(function(r){return r.date;}).sort();
+    var period = dates.length ? (dates[0]+' 〜 '+dates[dates.length-1]) : '-';
+    var trackList = Array.from(tracks).sort().join('・') || '-';
+    strip.innerHTML =
+      metricHTML(filtered.length,'対象レース数')+
+      metricHTML(trackList,'選択中の競馬場',true)+
+      metricHTML(period,'期間',true);
+  }
+  function metricHTML(v,label,isText){
+    return '<div class="metric"><span class="v">'+(isText?v:v.toLocaleString())+'</span><span class="l">'+label+'</span></div>';
+  }
+
+  function renderTabs(){
+    var wrap = document.getElementById('betTabs');
+    wrap.innerHTML = '';
+    BET_TYPES.forEach(function(b){
+      var tab = el('button','tab'+(state.activeBet===b.key?' active':''), b.label);
+      tab.addEventListener('click', function(){
+        state.activeBet = b.key;
+        renderTabs();
+        var filtered = getFilteredRaces();
+        renderTabBody(filtered);
+        renderBreakdown(filtered);
+      });
+      wrap.appendChild(tab);
+    });
+  }
+
+  function renderTabBody(filtered){
+    var body = document.getElementById('tabBody');
+    var footnote = document.getElementById('tableFootnote');
+    var bt = BET_TYPES.filter(function(b){return b.key===state.activeBet;})[0];
+    var payoutOk = hasPayoutData(null, null) || state.payoutRows.length>0;
+
+    if(bt.combo==='triple-ordered'){
+      var gosei = computeBetStats(filtered, bt.key, null, 'gosei');
+      var goukei = computeBetStats(filtered, bt.key, null, 'goukei');
+      body.innerHTML = '<div class="card-3t"></div>';
+      var wrap = body.querySelector('.card-3t');
+      wrap.appendChild(statCard('合成順位 上位3頭box', gosei, 'gosei'));
+      wrap.appendChild(statCard('合計順位 上位3頭box', goukei, 'goukei'));
+      footnote.textContent = '3連単は予想上位3頭を box(6点・600円)で購入したとみなして集計しています。着順は不問(3頭が3着以内に入れば的中)。';
+      return;
+    }
+
+    var rows = '';
+    for(var n=1;n<=MAX_N;n++){
+      var g = computeBetStats(filtered, bt.key, n, 'gosei');
+      var k = computeBetStats(filtered, bt.key, n, 'goukei');
+      rows += buildRow(n, g, k);
+    }
+    body.innerHTML =
+      '<div class="table-scroll"><table>'+
+      '<thead><tr>'+
+        '<th class="rowhead"></th>'+
+        '<th class="group-gosei method-head" colspan="3">合成順位</th>'+
+        '<th class="group-goukei method-head" colspan="3">合計順位</th>'+
+      '</tr><tr>'+
+        '<th class="rowhead">上位N</th>'+
+        '<th class="group-gosei">的中率</th><th class="group-gosei">回収率</th><th class="group-gosei">点数</th>'+
+        '<th class="group-goukei">的中率</th><th class="group-goukei">回収率</th><th class="group-goukei">点数</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+
+    var betLabel = bt.label;
+    footnote.textContent = betLabel+'は予想上位N頭を box'+(bt.combo==='single'?'(流し)':'')+'で購入したとみなして集計しています。点数は1レースあたりの購入点数(100円/点)。上位N頭が必要点数(N='+bt.needMin+'未満)に満たない場合は「ー」。';
+  }
+
+  function buildRow(n, g, k){
+    return '<tr>'+
+      '<td class="rowhead">上位'+n+'</td>'+
+      cellPair(g)+
+      cellPair(k)+
+      '</tr>';
+  }
+  function cellPair(stat){
+    if(!stat.applicable || stat.races===0){
+      return '<td class="dash">ー</td><td class="dash">ー</td><td class="dash">ー</td>';
+    }
+    var hitRate = stat.hits/stat.races;
+    var recRate = stat.cost>0 ? stat.ret/stat.cost : 0;
+    var hitCls = hitRate>=0.3 ? 'hit-high' : '';
+    var recCls = recRate>=1 ? 'hit-high' : (recRate>0?'hit-low':'');
+    return '<td class="'+hitCls+'">'+fmtPct(hitRate)+'</td>'+
+           '<td class="'+recCls+'">'+fmtPct(recRate)+'</td>'+
+           '<td>'+(stat.cost/100).toLocaleString()+'点</td>';
+  }
+
+  function statCard(title, stat, cls){
+    var card = el('div','stat-card');
+    var h = el('h3',cls,title);
+    card.appendChild(h);
+    if(!stat.applicable || stat.races===0){
+      card.appendChild(el('div','stat-row','対象レースがありません'));
+      return card;
+    }
+    var hitRate = stat.hits/stat.races;
+    var recRate = stat.cost>0 ? stat.ret/stat.cost : 0;
+    [
+      ['対象レース数', stat.races+'レース'],
+      ['的中数', stat.hits+'回'],
+      ['的中率', fmtPct(hitRate)],
+      ['回収率', fmtPct(recRate)],
+      ['総投資額', fmtYen(stat.cost)],
+      ['総回収額', fmtYen(stat.ret)]
+    ].forEach(function(pair){
+      var row = el('div','stat-row');
+      row.innerHTML = '<span>'+pair[0]+'</span><span class="v">'+pair[1]+'</span>';
+      card.appendChild(row);
+    });
+    return card;
+  }
+
+  function renderBreakdown(filtered){
+    var table = document.getElementById('breakdownTable');
+    document.getElementById('nVal').textContent = state.breakdownN;
+    var bt = BET_TYPES.filter(function(b){return b.key===state.activeBet;})[0];
+    var n = bt.combo==='triple-ordered' ? null : state.breakdownN;
+    document.getElementById('breakdownNWrap').style.display = bt.combo==='triple-ordered' ? 'none' : 'flex';
+
+    var groupKeyFn, groupLabels;
+    if(state.breakdownGroup==='size'){
+      groupKeyFn = function(r){return r.sizeband;};
+      groupLabels = ['少','多'];
+    }else if(state.breakdownGroup==='cond'){
+      var condOrder = ['良','稍重','重','不良'];
+      groupKeyFn = function(r){return r.track_condition||'不明';};
+      groupLabels = condOrder.filter(function(c){return filtered.some(function(r){return r.track_condition===c;});});
+    }else if(state.breakdownGroup==='track'){
+      groupKeyFn = function(r){return r.track;};
+      groupLabels = Array.from(new Set(filtered.map(function(r){return r.track;}))).sort();
+    }else{
+      groupKeyFn = function(r){return r.distance ? (r.distance+'m') : '不明';};
+      var distVals = Array.from(new Set(filtered.map(function(r){return r.distance;}).filter(Boolean))).sort(function(a,b){return a-b;});
+      groupLabels = distVals.map(function(d){return d+'m';});
+      if(filtered.some(function(r){return !r.distance;})) groupLabels.push('不明');
+    }
+
+    var rowsHtml = '';
+    groupLabels.forEach(function(label){
+      var subset = filtered.filter(function(r){ return groupKeyFn(r)===label; });
+      var g = computeBetStats(subset, state.activeBet, n, 'gosei');
+      var k = computeBetStats(subset, state.activeBet, n, 'goukei');
+      rowsHtml += '<tr><td class="rowhead">'+label+' <span style="color:var(--text-soft);font-family:var(--sans);font-size:10.5px;">('+subset.length+'R)</span></td>'+
+        cellPair(g)+cellPair(k)+'</tr>';
+    });
+
+    table.innerHTML =
+      '<thead><tr>'+
+        '<th class="rowhead"></th>'+
+        '<th class="group-gosei method-head" colspan="3">合成順位</th>'+
+        '<th class="group-goukei method-head" colspan="3">合計順位</th>'+
+      '</tr><tr>'+
+        '<th class="rowhead"></th>'+
+        '<th class="group-gosei">的中率</th><th class="group-gosei">回収率</th><th class="group-gosei">点数</th>'+
+        '<th class="group-goukei">的中率</th><th class="group-goukei">回収率</th><th class="group-goukei">点数</th>'+
+      '</tr></thead><tbody>'+rowsHtml+'</tbody>';
+  }
+
+  /* ---------------- top-level render ---------------- */
+  function renderAll(){
+    var filtered = getFilteredRaces();
+    renderSummary(filtered);
+    renderTabs();
+    renderTabBody(filtered);
+    renderBreakdown(filtered);
+  }
+  function rebuildAll(){
+    buildRaces();
+    renderFileList();
+    renderFilters();
+    renderAll();
+  }
+
+  /* ---------------- events ---------------- */
+  document.getElementById('predFiles').addEventListener('change', function(e){
+    handleFiles(e.target.files, 'pred'); e.target.value='';
+  });
+  document.getElementById('payoutFiles').addEventListener('change', function(e){
+    handleFiles(e.target.files, 'payout'); e.target.value='';
+  });
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    if(!confirm('保存されている読み込み済みデータをすべて消去します。よろしいですか?')) return;
+    state.predRows=[]; state.payoutRows=[]; state.loadedFiles=[];
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+    rebuildAll();
+  });
+  document.getElementById('dateFrom').addEventListener('change', function(e){ state.filters.from=e.target.value; renderAll(); });
+  document.getElementById('dateTo').addEventListener('change', function(e){ state.filters.to=e.target.value; renderAll(); });
+  document.getElementById('dateClearBtn').addEventListener('click', function(){
+    state.filters.from=''; state.filters.to='';
+    document.getElementById('dateFrom').value='';
+    document.getElementById('dateTo').value='';
+    renderAll();
+  });
+  document.getElementById('groupByChips').addEventListener('click', function(e){
+    var btn = e.target.closest('[data-g]');
+    if(!btn) return;
+    document.querySelectorAll('#groupByChips .chip').forEach(function(c){c.classList.remove('active');});
+    btn.classList.add('active');
+    state.breakdownGroup = btn.getAttribute('data-g');
+    renderBreakdown(getFilteredRaces());
+  });
+  document.getElementById('nMinus').addEventListener('click', function(){
+    state.breakdownN = Math.max(1, state.breakdownN-1);
+    renderBreakdown(getFilteredRaces());
+  });
+  document.getElementById('nPlus').addEventListener('click', function(){
+    state.breakdownN = Math.min(MAX_N, state.breakdownN+1);
+    renderBreakdown(getFilteredRaces());
+  });
+
+  /* ---------------- init ---------------- */
+  loadFromStorage();
+  rebuildAll();
+})();
+</script>
+</body>
+</html>
